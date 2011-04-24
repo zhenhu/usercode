@@ -67,6 +67,9 @@ void fitUpsilonYields(){
 	//fitpeaks(9);
 	//fitpeaks(10);
 	//fitpeaks(11);
+    //fitpeaks(12);
+    //fitpeaks(13);
+
 }
 
 void fitpeaks(int bin){
@@ -99,8 +102,8 @@ void fitpeaks(int bin){
 			suffix_="_cntr20-100";binw_=0.2;
 			break;
 		case 6:
-			cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt>=0 && upsPt<5.0";
-			suffix_="_upsPt0-50";binw_=0.1;
+			cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt>=0 && upsPt<6.5";
+			suffix_="_upsPt0-65";binw_=0.2;
 			break;
 		case 7:
 			cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt>=6.5 && upsPt<10";
@@ -110,15 +113,23 @@ void fitpeaks(int bin){
 			cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt>=10 && upsPt<20";
 			suffix_="_upsPt100-200";binw_=0.2;
 			break;
-		case 9:
-			cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt>=5.0 && upsPt<20";
-			suffix_="_upsPt50-200";binw_=0.2;
+        case 9:
+            cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt>=0 && upsPt<5";
+            suffix_="_upsPt0-50";binw_=0.2;
+            break;
+        case 10:
+            cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt>=5.0 && upsPt<20";
+            suffix_="_upsPt50-200";binw_=0.2;
+            break;
+		case 11:
+			cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt>=6.5 && upsPt<20";
+			suffix_="_upsPt65-200";binw_=0.2;
 			break;
-		case 10:
+		case 12:
 			cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt<20 && Centrality>=0 && Centrality<8";
 			suffix_="_cntr0-20";binw_=0.2;
 			break;
-		case 11:
+		case 13:
 			cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt<20 && Centrality>=4 && Centrality<50";
 			suffix_="_cntr10-100";binw_=0.2;
 			break;
@@ -325,9 +336,9 @@ void fitpeaks(int bin){
 	
 	
 	//the third fit with pp ratio pdf
-	RooFitResult* fit_3rd = pdf_pp->fitTo(*data,Save(kTRUE));
-	pdf_pp->plotOn(frame,Name("thePdf_pp"),LineStyle(kDashed),LineColor(kRed));
-	float chi_2_pp = frame->mychiSquare("thePdf_pp","theData",0,false,binMin,binMax);
+	//RooFitResult* fit_3rd = pdf_pp->fitTo(*data,Save(kTRUE));
+	//pdf_pp->plotOn(frame,Name("thePdf_pp"),LineStyle(kDashed),LineColor(kRed));
+	//float chi_2_pp = frame->mychiSquare("thePdf_pp","theData",0,false,binMin,binMax);
 	 
 	
 	//draw and save plots
