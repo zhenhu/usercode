@@ -32,18 +32,25 @@
 
 /*INPUTs*/
 double mass_l = 8;
-double mass_h = 12;
+double mass_h = 14;
 #define mmin_ mass_l 
 #define mmax_ mass_h
 #define fmin_ mass_l
 #define fmax_ mass_h
-double binw_ = 0.1;
+double binw_ = 0.15;
 double width_ = 0.095;
 bool plotpars = true;//false;
-TString finput("MassTree_withCuts_full.root");
-//TString finput("GlbMuon_hi_MassTree.root");
+
+//TString finput("MassTree_TrackerMuon_pp.root");
+TString finput("MassTree_NewCuts_hi.root");
+//TString finput("MassTree_NewCuts_pp_HIrereco.root");
+//TString finput("MassTree_NewCuts_pp_ppreco.root");
+
+//TString figName_("TrkMuon_pp_ppcut");
 TString figName_("masspeak_Hi_Upsi_full_all_muPt4"); //output fig names
+//TString figName_("GlbMuon_masspeak_pp_HIrereco_all_muPt4");
 //TString figName_("GlbMuon_masspeak_pp_all_muPt4");
+
 TString figs_("paperPlots/"); //output fig location
 const TString dirname_("");//"upsilonYield"); /* tree location in input file */
 
@@ -67,8 +74,8 @@ void fitUpsilonYields(){
 	//fitpeaks(9);
 	//fitpeaks(10);
 	//fitpeaks(11);
-    //fitpeaks(12);
-    //fitpeaks(13);
+	//fitpeaks(12);
+	//fitpeaks(13);
 
 }
 
@@ -78,8 +85,8 @@ void fitpeaks(int bin){
 	{
 		case 0:
 			cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt<20";  //hi acceptance for Upsilon
-			//cut_="( (muPlusPt>3.5 && abs(muPlusEta)<1.6) || (muPlusPt>2.5 && abs(muPlusEta)>=1.6 && abs(muPlusEta)<2.4) ) && ( (muMinusPt>3.5 && abs(muMinusEta)<1.6) || (muMinusPt>2.5 && abs(muMinusEta)>=1.6 && abs(muMinusEta)<2.4) )";   //pp acceptance for Upsilon 
-			suffix_="_all";binw_=0.1;
+			//cut_="( (muPlusPt>3.5 && abs(muPlusEta)<1.6) || (muPlusPt>2.5 && abs(muPlusEta)>=1.6 && abs(muPlusEta)<2.4) ) && ( (muMinusPt>3.5 && abs(muMinusEta)<1.6) || (muMinusPt>2.5 && abs(muMinusEta)>=1.6 && abs(muMinusEta)<2.4) ) ";   //pp acceptance for Upsilon 
+			suffix_="_all2";binw_=0.15;
 			break;
 		case 1:
 			cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt<20 && abs(upsRapidity)>=0 && abs(upsRapidity)<1.2";
@@ -113,14 +120,14 @@ void fitpeaks(int bin){
 			cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt>=10 && upsPt<20";
 			suffix_="_upsPt100-200";binw_=0.2;
 			break;
-        case 9:
-            cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt>=0 && upsPt<5";
-            suffix_="_upsPt0-50";binw_=0.2;
-            break;
-        case 10:
-            cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt>=5.0 && upsPt<20";
-            suffix_="_upsPt50-200";binw_=0.2;
-            break;
+		case 9:
+			cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt>=0 && upsPt<5";
+			suffix_="_upsPt0-50";binw_=0.2;
+			break;
+		case 10:
+			cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt>=5.0 && upsPt<20";
+			suffix_="_upsPt50-200";binw_=0.2;
+			break;
 		case 11:
 			cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt>=6.5 && upsPt<20";
 			suffix_="_upsPt65-200";binw_=0.2;
@@ -194,8 +201,8 @@ void fitpeaks(int bin){
 	//mean->setConstant(kTRUE);
 	sigma1->setVal(0);
 	sigma1->setConstant(kTRUE);
-	//sigma2->setVal(width_);
-	//sigma2->setConstant(kTRUE);
+	sigma2->setVal(width_);
+	sigma2->setConstant(kTRUE);
 
 	/// Upsilon 2S
 	RooCBShape  *gauss2S1 = new RooCBShape ("gauss2S1", "FSR cb 2s", 
@@ -218,10 +225,10 @@ void fitpeaks(int bin){
 	RooRealVar *bkg_a2  = new RooRealVar("bkg_a2", "background a2", 0, -1, 1);
 	RooAbsPdf  *bkgPdf  = new RooChebychev("bkg","linear background",
 			*mass, RooArgList(*bkg_a1,*bkg_a2));
-	//bkg_a1->setVal(-0.03);
+	//bkg_a1->setVal(0);
 	//bkg_a1->setConstant(kTRUE);
-	bkg_a2->setVal(0);
-	bkg_a2->setConstant(kTRUE);
+	//bkg_a2->setVal(0);
+	//bkg_a2->setConstant(kTRUE);
 
 	/// Combined pdf
 	int nt = 1000;
@@ -230,29 +237,22 @@ void fitpeaks(int bin){
 
 	RooRealVar *nbkgd = new RooRealVar("nbkgd","brackground yield",nt*0.75,0,10*nt);
 	RooRealVar *nsig1f  = new RooRealVar("nsig1S","Y(1S) yield",   nt*0.25,0,10*nt);
-	
+
 	//use yields of 2S and 3S as free parameters
-	//RooRealVar *nsig2f  = new RooRealVar("nsig2S","Y(2S) yield",   nt*0.25,0,10*nt);
-	//RooRealVar *nsig3f  = new RooRealVar("nsig3S","Y(3S) yield",   nt*0.25,0,10*nt);
-	
+	//RooRealVar *nsig2f  = new RooRealVar("nsig2S","Y(2S) yield",   nt*0.25,0,1*nt);
+	//RooRealVar *nsig3f  = new RooRealVar("nsig3S","Y(3S) yield",   nt*0.25,0,1*nt);
+
 	//use ratio of 2S and 3S as free parameters
 	RooRealVar *f2Svs1S = new RooRealVar("2S/1S","Y(2S)/Y(1S) yields ratio",0.4,0,1);
 	RooRealVar *f3Svs1S = new RooRealVar("3S/1S","3/1 sig fration",0.3,0,1);
-	//RooRealVar *f23vs1S = new RooRealVar("(2S+3S)/1S","(2+3)/1 sig fration",0.5,0,1);
+	//RooRealVar *f23vs1S = new RooRealVar("(2S+3S)/1S","Y(2S+3S)/Y(1S) yields ratio",0.5,0,1);
 	RooFormulaVar *nsig2f = new RooFormulaVar("nsig2S","@0*@1", RooArgList(*nsig1f,*f2Svs1S));
 	RooFormulaVar *nsig3f = new RooFormulaVar("nsig3S","@0*@1", RooArgList(*nsig1f,*f3Svs1S));
 	//RooFormulaVar *nsig3f = new RooFormulaVar("nsig3S","@0*@2-@0*@1", RooArgList(*nsig1f,*f2Svs1S,*f23vs1S));
-	
-	//force the ratio to the pp value
-	RooFormulaVar *nsig2f_ = new RooFormulaVar("nsig2S_","@0*0.491", RooArgList(*nsig1f)); 
-	RooFormulaVar *nsig3f_ = new RooFormulaVar("nsig3S_","@0*0.212", RooArgList(*nsig1f)); 
 
-	//f2Svs1S->setVal(0.491);
-	//f2Svs1S->setConstant(kTRUE);
-	//f3Svs1S->setVal(0);
-	//f3Svs1S->setConstant(kTRUE);
-	//f23vs1S->setVal(0);
-	//f23vs1S->setConstant(kTRUE);
+	//force the ratio to the pp value
+	RooFormulaVar *nsig2f_ = new RooFormulaVar("nsig2S_","@0*0.44", RooArgList(*nsig1f)); 
+	RooFormulaVar *nsig3f_ = new RooFormulaVar("nsig3S_","@0*0.318", RooArgList(*nsig1f)); 
 
 	RooAbsPdf  *pdf   = new RooAddPdf ("pdf","total signal+background pdf",
 			RooArgList(*gauss1S2,*sig2S,*sig3S,*bkgPdf),
@@ -268,8 +268,8 @@ void fitpeaks(int bin){
 	RooRealVar *bkg_a2_pre  = new RooRealVar("bkg_a2_pre", "background a2", 0, -1, 1);
 	RooAbsPdf  *bkgPdf_pre  = new RooChebychev("bkgPdf_pre","linear background",
 			*mass, RooArgList(*bkg_a1_pre,*bkg_a2_pre));
-	bkg_a2_pre->setVal(0);
-	bkg_a2_pre->setConstant(kTRUE);
+	//bkg_a2_pre->setVal(0);
+	//bkg_a2_pre->setConstant(kTRUE);
 	/// signl pdf for th pre-fit with only Y(1S) peak
 	RooRealVar *nsig_pre  = new RooRealVar("nsig_pre","signal 1 yield",nt*0.25,0,10*nt);
 	RooRealVar *nbkgd_pre = new RooRealVar("nbkgd_pre","brackground 1 yield",nt*0.75,0,10*nt);
@@ -287,7 +287,7 @@ void fitpeaks(int bin){
 	RooRealVar* upsRapidity = new RooRealVar("upsRapidity",  "upsRapidity"  ,-2.4,2.4);
 	RooRealVar* vProb = new RooRealVar("vProb",  "vProb"  ,0,1);
 	/*******************comment the next line for running the pp trees*****************/
-	RooRealVar* Centrality = new RooRealVar("Centrality",  "Centrality"  ,0,40);
+	//RooRealVar* Centrality = new RooRealVar("Centrality",  "Centrality"  ,0,40);
 	/**********************************************************************************/
 	RooRealVar* muPlusPt = new RooRealVar("muPlusPt","muPlusPt",0,50);
 	RooRealVar* muPlusEta = new RooRealVar("muPlusEta","muPlusEta",-2.5,2.5);
@@ -296,9 +296,9 @@ void fitpeaks(int bin){
 
 	RooDataSet* data0, *data;
 	/***********************************for HI*****************************************/
-	data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*vProb,*upsPt,*Centrality,*muPlusPt,*muMinusPt));
+	//data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*vProb,*upsPt,*Centrality,*muPlusPt,*muMinusPt));
 	/***********************************for pp*****************************************/
-	//data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*upsPt,*muPlusPt,*muMinusPt,*muPlusEta,*muMinusEta));
+	data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*upsPt,*muPlusPt,*muMinusPt,*muPlusEta,*muMinusEta));
 	/**********************************************************************************/
 	data0->Print();
 	data = ( RooDataSet*) data0->reduce(Cut(cut_));
@@ -307,8 +307,9 @@ void fitpeaks(int bin){
 
 	//the pre-fit with only Y(1S) pdf
 	//RooFitResult* fit_1st = pdf_pre->fitTo(*data,Range("R1,R2"),Save(kTRUE));
-	RooFitResult* fit_1st = pdf_pre->fitTo(*data,Save(kTRUE));
-	mean->setConstant(kTRUE);
+	//RooFitResult* fit_1st = pdf_pre->fitTo(*data,Save(kTRUE),Extended(kTRUE));
+	//mean->setConstant(kTRUE);
+
 	//plot
 	TCanvas c; c.cd();
 	int nbins = (mmax_-mmin_)/binw_;
@@ -320,7 +321,7 @@ void fitpeaks(int bin){
 
 
 	//the second fit with default pdf 
-	RooFitResult* fit_2nd = pdf->fitTo(*data,Save(kTRUE));
+	RooFitResult* fit_2nd = pdf->fitTo(*data,Save(kTRUE),Extended(kTRUE));
 	//plot
 	pdf->plotOn(frame,Name("thePdf"));
 	//pdf->plotOn(frame,Components(bkgPdf),LineStyle(kDashed));
@@ -330,17 +331,20 @@ void fitpeaks(int bin){
 	float bin_Max = (10.6-mmin_)/binw_;
 	int binMin = (int)bin_Min;
 	int binMax = (int)bin_Max;
-	int nfloatpars = pars->selectByAttrib("Constant",kFALSE)->getSize(); 
-	double mychsq = frame->mychiSquare("thePdf","theData",nfloatpars,false,binMin,binMax);
-	if(plotpars) pdf->paramOn(frame,Layout(0.65)/*,Label("3S/1S = 0.212 #pm 0.061"));*/,Label(Form("#chi^{2}/ndf = %2.1f", mychsq)));
-	
-	
+	int nfloatpars = pars->selectByAttrib("Constant",kFALSE)->getSize();
+	float myndof = frame->GetNbinsX() - nfloatpars;
+	double mychsq = frame->mychiSquare("thePdf","theData",nfloatpars,false,binMin,binMax)*myndof;
+	if(plotpars) pdf->paramOn(frame,Layout(0.65)/*,Label("3S/1S = 0.212 #pm 0.061"));*/,Label(Form("#chi^{2}/ndf = %2.1f/%2.0f", mychsq,myndof)));
+
+
 	//the third fit with pp ratio pdf
-	//RooFitResult* fit_3rd = pdf_pp->fitTo(*data,Save(kTRUE));
-	//pdf_pp->plotOn(frame,Name("thePdf_pp"),LineStyle(kDashed),LineColor(kRed));
-	//float chi_2_pp = frame->mychiSquare("thePdf_pp","theData",0,false,binMin,binMax);
-	 
-	
+	nsig1f->setVal(86);
+	nsig1f->setConstant(kTRUE);
+	RooFitResult* fit_3rd = pdf_pp->fitTo(*data,Save(kTRUE),Extended(kTRUE));
+	pdf_pp->plotOn(frame,Name("thePdf_pp"),LineStyle(kDashed),LineColor(kRed));
+	float chi_2_pp = frame->mychiSquare("thePdf_pp","theData",0,false,binMin,binMax);
+
+
 	//draw and save plots
 	data->plotOn(frame);
 	frame->SetTitle( "" );
@@ -353,7 +357,7 @@ void fitpeaks(int bin){
 	c.SaveAs(figs_+figName_+suffix_+".gif");
 	c.SaveAs(figs_+figName_+suffix_+".pdf");
 
-
+	
 	//calculate the upper limits
 	ProfileLikelihoodCalculator pl(*data,*pdf,*f2Svs1S);
 	pl.SetConfidenceLevel(0.95); // 95% interval
@@ -366,18 +370,18 @@ void fitpeaks(int bin){
 
 	// print out the iterval on the Parameter of Interest
 	cout << "\n95% interval on " <<f2Svs1S->GetName()<<" is : ["<<
-		interval->LowerLimit(*f2Svs1S) << ", "<<
-		interval->UpperLimit(*f2Svs1S) <<"] "<<endl;
-
+	interval->LowerLimit(*f2Svs1S) << ", "<<
+	interval->UpperLimit(*f2Svs1S) <<"] "<<endl;
+	
 
 	// Print fit results 
 	cout << endl << "figure name: "<< figName_ << endl << endl;
-	cout << "the pre-fit with only Y1S pdf" << endl ;
-	fit_1st->Print() ;
+	//cout << "the pre-fit with only Y1S pdf" << endl ;
+	//fit_1st->Print() ;
 	cout << "the second fit with the default pdf " << endl ;
 	fit_2nd->Print() ;
 	cout <<"free parameter = "<< nfloatpars << ",     mychi2 = " << mychsq << endl << endl;
-
+	fit_3rd->Print() ;
 	ofstream outfile("fitresults.out", ios_base::app);
 	outfile<<endl<<"**********"<<suffix_<<"**********"<<endl<<endl;
 	outfile<<"Y(1S) yield: = "<<nsig1f->getVal()<<" +/- "<<nsig1f->getError()<<endl<<endl;
