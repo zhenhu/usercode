@@ -31,35 +31,39 @@
 //#include "TMath"
 
 /*INPUTs*/
-double mass_l = 8;
-double mass_h = 14;
+
+double mass_l = 7.0;
+double mass_h = 14.0;
 #define mmin_ mass_l 
 #define mmax_ mass_h
 #define fmin_ mass_l
 #define fmax_ mass_h
-double binw_ = 0.15;
-double width_ = 0.092;
-bool plotpars = true;//false;
+double binw_ = 0.14;
+double width_ = 0.092; //0.087;
+bool plotpars = 0;//false;
 bool doMinos = 1;//kFALSE;
-RooRealVar *f2Svs1S_pp = new RooRealVar("N_{3S}/N_{1S}pp","Y(3S)/Y(1S) yields pp ratio",0.449745,-1,5);
-RooRealVar *f3Svs1S_pp = new RooRealVar("N_{2S}/N_{1S}pp","Y(2S)/Y(1S) yields pp ratio",0.31757,-1,5);
+bool PbPb = 1;
+RooRealVar *f2Svs1S_pp = new RooRealVar("N_{3S}/N_{1S}pp","Y(3S)/Y(1S) yields pp ratio",0.45455,-1,5);
+RooRealVar *f3Svs1S_pp = new RooRealVar("N_{2S}/N_{1S}pp","Y(2S)/Y(1S) yields pp ratio",0.32626,-1,5);
 ofstream outfile("fitresults.out", ios_base::app);
 
+TString finput;
+TString figName_;
 //TString finput("MassTree_TrackerMuon_pp_ppqualityCUts.root");
-TString finput("MassTree_NewCuts_hi.root");
-//TString finput("MassTree_NewCuts_pp_HIrereco_old.root");
+//TString finput("MassTree_NewCuts_hi.root");
+//TString finput("MassTree_NewCuts_pp_HIrereco.root");
 //TString finput("MassTree_NewCuts_pp_ppreco.root");
 //TString finput("7TeV3pbHiGlobalCuts.root");
 //TString finput("/afs/cern.ch/user/d/demattia/public/Trees/40pb_GlbMuon_hi_MassTree.root");
 
 //TString figName_("Muon_pp_ppcut");
-TString figName_("masspeak_Hi"); //output fig names
+//TString figName_("masspeak_Hi"); //output fig names
 //TString figName_("masspeak_pp_HIrereco");
 //TString figName_("masspeak_pp");
 //TString figName_("masspeak_7TeV_40pb");
 
-TString figs_("paperPlots/"); //output fig location
-const TString dirname_("");//"upsilonYield"); /* tree location in input file */
+TString figs_("finalplots/"); //output fig location
+const TString dirname_("");//"upsilonYield"); tree location in input file 
 TString paramOn_("");
 TString suffix_, cut_;
 
@@ -70,12 +74,21 @@ void suppression(RooRealVar*, RooFitResult*, RooAbsPdf*, RooAbsPdf*, int, RooDat
 void setUpLimits(float xMin, float xMax, RooAbsPdf*, RooDataSet*, RooRealVar*, float baseNll);
 pair<double, double> ConfidencInterval(float, RooRealVar *fnll, RooDataSet *data, RooAbsPdf *pdf);
 
-
 void fitUpsilonYields(){
 	gROOT->LoadMacro("setTDRStyle_modified.C");
 	//setTDRStyle();
 
 	//double original_yields[9] = {84.7363, 48.703, 36.5036, 22.285, 29.8004, 32.5132, 41.3552, 17.2833, 24.2914};
+
+	if (PbPb) {
+		finput = "MassTree_NewCuts_hi.root";
+		figName_ = "masspeak_Hi"; //output fig names
+	}
+	else {
+		finput = "MassTree_NewCuts_pp_HIrereco.root";
+		figName_ = "masspeak_pp_HIrereco";
+	}
+
 	//different binning:
 	fitpeaks(0);
 	//	fitpeaks(1);
@@ -91,10 +104,10 @@ void fitUpsilonYields(){
 	//	fitpeaks(11);
 	//	fitpeaks(12);
 	//	fitpeaks(13);
-	//  fitpeaks(14);
-	//  fitpeaks(15);
-	//  fitpeaks(16);
-	//  fitpeaks(17);
+	//	fitpeaks(14);
+	//	fitpeaks(15);
+	//	fitpeaks(16);
+	//	fitpeaks(17);
 }
 
 	void fitpeaks(int bin){
@@ -103,10 +116,10 @@ void fitUpsilonYields(){
 			case 0:
 				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && abs(upsRapidity)<2.4 && upsPt<20";  //hi acceptance for Upsilon
 				//cut_="( (muPlusPt>3.5 && abs(muPlusEta)<1.6) || (muPlusPt>2.5 && abs(muPlusEta)>=1.6 && abs(muPlusEta)<2.4) ) && ( (muMinusPt>3.5 && abs(muMinusEta)<1.6) || (muMinusPt>2.5 && abs(muMinusEta)>=1.6 && abs(muMinusEta)<2.4) ) && abs(upsRapidity)<2.0";   //pp acceptance for Upsilon 
-				suffix_="_all2"; binw_=0.15;
-				f2Svs1S_pp->setVal(0.449745);
+				suffix_="";
+				f2Svs1S_pp->setVal(0.45455);
 				//f2Svs1S_pp->setVal(0);
-				f3Svs1S_pp->setVal(0.31757);
+				f3Svs1S_pp->setVal(0.32626);
 				//f3Svs1S_pp->setVal(0);
 				break;
 			case 1:
@@ -163,25 +176,25 @@ void fitUpsilonYields(){
 				break;
 			case 14:
 				cut_="muPlusPt > 3.0 && muMinusPt > 3.0 && abs(upsRapidity)<2.4 && upsPt<20"; 
-				suffix_="_MuonPT3"; binw_=0.15; 
+				suffix_="_MuonPT3"; binw_=0.14; 
 				f2Svs1S_pp->setVal(0.272881);
 				f3Svs1S_pp->setVal(0.215646);
 				break;
 			case 15:
 				cut_="muPlusPt > 3.5 && muMinusPt > 3.5 && abs(upsRapidity)<2.4 && upsPt<20"; 
-				suffix_="_MuonPT4_2"; binw_=0.15;
+				suffix_="_MuonPT4_2"; binw_=0.14;
 				f2Svs1S_pp->setVal(0.313659);
 				f3Svs1S_pp->setVal(0.230575);
 				break;
 			case 16:
 				cut_="muPlusPt > 4.5 && muMinusPt > 4.5 && abs(upsRapidity)<2.4 && upsPt<20"; 
-				suffix_="_MuonPT45"; binw_=0.15;
+				suffix_="_MuonPT45"; binw_=0.14;
 				f2Svs1S_pp->setVal(0.641356);
 				f3Svs1S_pp->setVal(0.509932);
 				break;
 			case 17:
 				cut_="muPlusPt > 5.0 && muMinusPt > 5.0 && abs(upsRapidity)<2.4 && upsPt<20";  
-				suffix_="_MuonPT5"; binw_=0.15;
+				suffix_="_MuonPT5"; binw_=0.14;
 				f2Svs1S_pp->setVal(1.22348);
 				f3Svs1S_pp->setVal(0.560287);
 				break;
@@ -248,8 +261,8 @@ void fitUpsilonYields(){
 		//mean->setConstant(kTRUE);
 		sigma1->setVal(0);
 		sigma1->setConstant(kTRUE);
-		//sigma2->setVal(width_);
-		//sigma2->setConstant(kTRUE);
+		sigma2->setVal(width_);
+		sigma2->setConstant(kTRUE);
 
 		/// Upsilon 2S
 		RooCBShape  *gauss2S1 = new RooCBShape ("gauss2S1", "FSR cb 2s", 
@@ -290,9 +303,9 @@ void fitUpsilonYields(){
 		//RooRealVar *nsig3f  = new RooRealVar("N_{#Upsilon(3S)}","nsig3S",   nt*0.25,0,10*nt);
 
 		//use ratio of 2S and 3S as free parameters
-		RooRealVar *f2Svs1S = new RooRealVar("N_{2S}/N_{1S}","f2Svs1S",0.4,0,1.1);
+		RooRealVar *f2Svs1S = new RooRealVar("N_{2S}/N_{1S}","f2Svs1S",0.4,0,-0.3,1.1);
 		//RooRealVar *f3Svs1S = new RooRealVar("N_{3S}/N_{1S}","f3Svs1S",0.3,-0.3,1.1);
-		RooRealVar *f23vs1S = new RooRealVar("N_{2S+3S}/N_{1S}","f23vs1S",0.5,0,1.1);
+		RooRealVar *f23vs1S = new RooRealVar("N_{2S+3S}/N_{1S}","f23vs1S",0.5,-0.3,1.1);
 		RooFormulaVar *nsig2f = new RooFormulaVar("nsig2S","@0*@1", RooArgList(*nsig1f,*f2Svs1S));
 		//RooFormulaVar *nsig3f = new RooFormulaVar("nsig3S","@0*@1", RooArgList(*nsig1f,*f3Svs1S));
 		RooFormulaVar *nsig3f = new RooFormulaVar("nsig3S","@0*@2-@0*@1", RooArgList(*nsig1f,*f2Svs1S,*f23vs1S));
@@ -361,9 +374,9 @@ void fitUpsilonYields(){
 
 		//plot
 		TCanvas c; c.cd();
-		int nbins = (mmax_-mmin_)/binw_;
+		int nbins = ceil((mmax_-mmin_)/binw_); 
 		RooPlot* frame = mass->frame(Bins(nbins),Range(mmin_,mmax_));
-		data->plotOn(frame,Name("theData"));
+		data->plotOn(frame,Name("theData"),MarkerSize(0.8));
 		//pdf_pre->plotOn(frame,LineColor(kRed));
 		//pdf_pre->plotOn(frame,Components(bkgPdf_pre),LineStyle(kDashed));i
 		//if(plotpars) pdf_pre->paramOn(frame,Layout(0.65));
@@ -384,10 +397,11 @@ void fitUpsilonYields(){
 		float myndof = frame->GetNbinsX() - nfloatpars;
 		double mychsq = frame->mychiSquare("thePdf","theData",nfloatpars,false,binMin,binMax)*myndof;
 		if(plotpars) {
-			paramOn_ = "_parmaOn";
-			pdf->paramOn(frame,Layout(0.5,0.95,0.95)/*,Label("3S/1S = 0.212 #pm 0.061"));*/,Label(Form("#chi^{2}/ndf = %2.1f/%2.0f", mychsq,myndof)));
+			paramOn_ = "_paramOn";
+			pdf->paramOn(frame,Layout(0.6,0.95,0.95),Label(Form("#chi^{2}/ndf = %2.1f/%2.0f", mychsq,myndof)));
 		}
 		else paramOn_ = "";
+
 		outfile<<"Y(1S) yield  : = "<<nsig1f->getVal()<<" +/- "<<nsig1f->getError()<<endl<<endl;
 		//outfile<<"2S/1S        : = "<<f2Svs1S->getVal()<<" +/- "<<f2Svs1S->getError()<<endl<<endl;
 		//outfile<<"(3S+2S)/1S   : = "<<f23vs1S->getVal()<<" +/- "<<f23vs1S->getError()<<endl<<endl;
@@ -396,19 +410,42 @@ void fitUpsilonYields(){
 		outfile<<"free parameter = "<< nfloatpars << ", mychi2 = " << mychsq << ", ndof = " << myndof  << endl << endl;
 
 		//draw and save plots
-		data->plotOn(frame);
+		data->plotOn(frame,MarkerSize(0.8));
 		frame->SetTitle( "" );
 		frame->GetXaxis()->SetTitle("#mu#mu invariant mass [GeV/c^{2}]");
-		//frame->GetYaxis()->SetTitleOffset(1.3);
+		frame->GetYaxis()->SetTitleOffset(0.9);//(1.3);
 		frame->GetYaxis()->SetTitleSize(0.05);
 		frame->Draw();
+		if(!plotpars) {
+			if (PbPb){
+				TLatex latex1;
+				latex1.DrawLatex(10.4,57, "CMS, PbPb, #sqrt{s} = 2.76 TeV");   
+				TLatex latex2;
+				latex2.DrawLatex(10.4,50,"p_{T}^{#mu} > 4 GeV/c, |#eta^{#mu}| < 2.4");   
+				TLatex latex3;
+				latex3.DrawLatex(10.4,43,"p_{T}^{#Upsilon} < 20 GeV/c");
+				TLatex latex4;
+				latex4.DrawLatex(7.5,57, "b)");
+			}
+			else {
+				TLatex latex1;
+				latex1.DrawLatex(10.4,71, "CMS, pp, #sqrt{s} = 2.76 TeV");   
+				TLatex latex2;
+				latex2.DrawLatex(10.4,62,"p_{T}^{#mu} > 4 GeV/c, |#eta^{#mu}| < 2.4");   
+				TLatex latex3;
+				latex3.DrawLatex(10.4,53,"p_{T}^{#Upsilon} < 20 GeV/c");
+				TLatex latex4;
+				latex4.DrawLatex(7.5,71, "a)");
+			}		
+
+		}
 		c.SaveAs(figs_+figName_+paramOn_+suffix_+".root");
 		c.SaveAs(figs_+figName_+paramOn_+suffix_+".eps");
 		c.SaveAs(figs_+figName_+paramOn_+suffix_+".gif");
 		c.SaveAs(figs_+figName_+paramOn_+suffix_+".pdf");
 
 		//overlay the pp ratio, calculate the significance of suppression
-		suppression(nsig1f, fit_2nd, nfloatpars, pdf, pdf_pp, data, frame, binMax, binMin);
+		//suppression(nsig1f, fit_2nd, nfloatpars, pdf, pdf_pp, data, frame, binMax, binMin);
 
 		//setup the limits
 		float baseNll = fit_2nd->minNll();
@@ -477,8 +514,30 @@ void suppression(RooRealVar *nsig1f, RooFitResult *fit_2nd, int nfloatpars, RooA
 	outfile<<"*************************************"<<endl<<endl;
 	outfile<<"the C.L. is : "<<cl<<",  the significance level is : "<<Significance<<" (one side)"<<endl<<endl;
 	//draw and save plots
-	data->plotOn(frame);
+	data->plotOn(frame,MarkerSize(0.8));
 	frame->Draw();
+	TLatex latex1;
+	latex1.DrawLatex(10.4,57, "CMS, PbPb, #sqrt{s} = 2.76 TeV");
+	TLatex latex2;
+	latex2.DrawLatex(10.4,50,"p_{T}^{#mu} > 4 GeV/c, |#eta^{#mu}| < 2.4");
+	TLatex latex3;
+	latex3.DrawLatex(10.4,43,"p_{T}^{#Upsilon} < 20 GeV/c");
+	TLatex latex4;
+	latex4.DrawLatex(7.5,57, "b)");
+	TLatex latex5;
+	latex5.DrawLatex(12,30, "pp lineshape");
+	TLatex latex6;
+	latex5.DrawLatex(12,23, "PbPb fit");
+	TLine L1(11.4,31,11.9,31);
+	L1.SetLineColor(kRed);
+	L1.SetLineStyle(kDashed);
+	L1.SetLineWidth(2);
+	L1.Draw();
+	TLine L2(11.4,24,11.9,24);
+	L2.SetLineColor(kBlue);
+	L2.SetLineWidth(2);
+	L2.Draw();
+
 	c1.SaveAs(figs_+"overlay1_"+figName_+paramOn_+suffix_+".root");
 	c1.SaveAs(figs_+"overlay1_"+figName_+paramOn_+suffix_+".eps");
 	c1.SaveAs(figs_+"overlay1_"+figName_+paramOn_+suffix_+".gif");
