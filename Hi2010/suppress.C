@@ -26,6 +26,7 @@ example how to run:
 #include "RooGaussian.h"
 #include "RooChebychev.h"
 #include "RooCBShape.h"
+#include "RooUniform.h"
 #include "RooPlot.h"
 #include "RooHist.h"
 #include "RooMCStudy.h"
@@ -41,8 +42,6 @@ example how to run:
 #include "Roo1DTable.h"
 #include "RooCmdArg.h"
 #include "RooChi2Var.h"
-
-//#include "LikelihoodIntervalPlot.h"
 
 #include "TROOT.h"
 #include "TStyle.h"
@@ -62,11 +61,43 @@ example how to run:
 #include "TLatex.h"
 #include "TMath.h"
 
+#include "RooMinuit.h"
+
+#include "RooStats/ProfileLikelihoodCalculator.h"
+#include "RooStats/MCMCCalculator.h"
+#include "RooStats/UniformProposal.h"
+#include "RooStats/FeldmanCousins.h"
+#include "RooStats/NumberCountingPdfFactory.h"
+#include "RooStats/ConfInterval.h"
+#include "RooStats/PointSetInterval.h"
+#include "RooStats/LikelihoodInterval.h"
+#include "RooStats/LikelihoodIntervalPlot.h"
+#include "RooStats/RooStatsUtils.h"
+#include "RooStats/ModelConfig.h"
+#include "RooStats/MCMCInterval.h"
+#include "RooStats/MCMCIntervalPlot.h"
+#include "RooStats/ProposalFunction.h"
+#include "RooStats/ProposalHelper.h"
+
+#include "cms_stat_001.C";
+RooStats::MCMCInterval * StandardBayesianMCMCInterval(RooWorkspace*,
+			     RooStats::ModelConfig*,
+			     RooAbsData*,
+			     double,
+			     double,
+			     int,
+			     int,
+			     const char *,
+			     int);
+ 
+#include "setTDRStyle_modified.C"
+void setTDRStyle();
+
 using namespace RooFit;
 
-bool doMinos = 1;//kFALSE;
+bool doMinos = 0;//kFALSE;
 
-const double mmin_    = 8;  
+const double mmin_    = 7;  
 const double mmax_    = 14.;
 const int    nptbins  = 50;
 int nMassBins_;
@@ -82,20 +113,22 @@ RooWorkspace* wks = new RooWorkspace("wks","upsilon mass");
 RooAbsPdf* buildPdf(); //pdf for separate fitting
 RooSimultaneous* buildPdfSimul(RooCategory*); // pdf for simultabeous fitting
 RooFitResult* fitYield(RooDataSet*, RooAbsPdf *pdf, TString); 
-void dumpFitVal(RooFitResult*, TString="figs/pt4");
+void dumpFitVal(RooFitResult*, TString);
 void plotDistributions(RooDataSet* hi, RooDataSet* ph, RooDataSet* pp, RooDataSet* p3);
 void llprof(RooDataSet*, RooAbsPdf*, RooRealVar*); /*placeholder*/
 
+void computeLimit();
 
 void suppress(double ptmumin = 4.0) {
 
   ptmumin_ = ptmumin;
 
-  figDir+= "pt";
-  figDir+= TString::Format("%3.1f/",ptmumin);
+  //figDir+= "pt";
+  //figDir+= TString::Format("%3.1f/",ptmumin);
 
+  //gROOT->LoadMacro("cms_stat_001.C");
 
-  gROOT->LoadMacro("setTDRStyle_modified.C");
+  //gROOT->LoadMacro("setTDRStyle_modified.C");
   setTDRStyle();
   
   double mass_precision = 0.1;
@@ -126,7 +159,6 @@ void suppress(double ptmumin = 4.0) {
 
   gDirectory->pwd();
   gDirectory->ls();
-  //return; 
 
   gDirectory->Cd(fn_pp+":");
   TTree* tree_pp = (TTree*)gROOT->FindObject(tree_name);
@@ -134,7 +166,9 @@ void suppress(double ptmumin = 4.0) {
   gDirectory->Cd(fn_p3+":/yieldUpsilonTree");
   TTree* tree_p3 = (TTree*)gROOT->FindObject("probe_tree");
 
-  //tree_pp->Print(); tree_hi->Print("v"); return;
+  //gDirectory->Cd(fn_p3+":");
+  //TTree* tree_p3 = (TTree*)gROOT->FindObject(tree_name);
+  //tree_p3->Print(); tree_hi->Print("v"); return;
 
   //recast ttrees as dataset
   RooArgSet *cols;
@@ -146,6 +180,7 @@ void suppress(double ptmumin = 4.0) {
 
   TString massCut = TString::Format("invariantMass>%4.2f&&invariantMass<%4.2f",mmin_,mmax_);
   TString ptCut   = TString::Format("muMinusPt>%4.2f&&muPlusPt>%4.2f && upsPt<20 && upsRapidity<2.4&&upsRapidity>-2.4",ptmumin_,ptmumin_);
+
 
   data_hi_0 = new RooDataSet("data_hi","data_hi",tree_hi,*cols);
   data_hi =  (RooDataSet*) (data_hi_0
@@ -162,6 +197,8 @@ void suppress(double ptmumin = 4.0) {
 			    ->reduce(Cut(massCut))
 			    ->reduce(Cut(ptCut)) 
 			    ); 
+
+
   data_p3_0 = new RooDataSet("data_p3","data_p3",tree_p3,*cols);
   data_p3 =  (RooDataSet*) (data_p3_0
 			    //->reduce(Cut("invariantMass>7&&invariantMass<15"))
@@ -175,11 +212,12 @@ void suppress(double ptmumin = 4.0) {
     plotDistributions(data_hi, data_ph, data_pp, data_p3);
 
 
+
   //separate fitting 
   RooAbsPdf* simplePdf = buildPdf();
   RooFitResult *fitres_hi, *fitres_ph, *fitres_pp, *fitres_p3;
 
-  bool separate_fit = 1;
+  bool separate_fit = 0;
   if(separate_fit) {
     fitres_hi = fitYield(data_hi,simplePdf,"_hi");
     //return;
@@ -206,9 +244,15 @@ void suppress(double ptmumin = 4.0) {
   RooFitResult* fitres_hi_pp;
   if(fit_simul_hi_pp) {
     RooDataSet* data_comb_hi_pp = new 
-      RooDataSet("combData HI pp","combined data hi pp",
+      RooDataSet("combData","combined data hi pp",
 		 *mass,Index(*sample),Import("heavyion",*data_hi),Import("ppreference",*data_ph));
-    
+ 
+    //wks->import(*sample);
+    wks->import(*data_comb_hi_pp);
+   
+    //computeLimit();
+    //return;
+
     fitres_hi_pp = simPdf->fitTo(*data_comb_hi_pp, Save(),Extended(kTRUE), Minos(doMinos));
 
     RooPlot* frame_hi = mass->frame(Bins(nMassBins_),Title("Heavy Ion sample"));
@@ -240,7 +284,7 @@ void suppress(double ptmumin = 4.0) {
   }
 
   /// simultaneous fit to pp data 2.76 vs 7 TeV
-  bool fit_simul_pp_p3 = 1;
+  bool fit_simul_pp_p3 = 0;
   RooFitResult* fitres_pp_p3;
   if(fit_simul_pp_p3){
     
@@ -279,60 +323,71 @@ void suppress(double ptmumin = 4.0) {
 
 
   cout << "pt_mu < " << ptmumin_ << endl; 
-
- if(separate_fit){
-
-   printf("\t sigma \t\t yield \t\t N23/N1 \t\t N3/N2 \n");
-   dumpFitVal(fitres_hi,"HI");
-   dumpFitVal(fitres_ph,"pp hire");
-   dumpFitVal(fitres_pp,"pp 2.76");
-   dumpFitVal(fitres_p3,"pp 7TeV");
+  
+  RooRealVar*f23o1hi, *f23o1pp, *rat23o1; 
+  RooRealVar*f2o1hi, *f2o1pp, *rat2o1; 
 
 
+  if(separate_fit){
+    
+    printf("\t sigma \t\t yield \t\t N23/N1 \t\t N2/N1 \n");
+    dumpFitVal(fitres_hi,"HI");
+    dumpFitVal(fitres_ph,"pp hire");
+    dumpFitVal(fitres_pp,"pp 2.76");
+    dumpFitVal(fitres_p3,"pp 7TeV");
+    
     printf("separate sample fitting\n");
-    RooRealVar* f23o1hi = (RooRealVar*)fitres_hi->floatParsFinal().find("N_{2S+3S}/N_{1S}");
+    double rat(0), rat_e(0);
+
+    f23o1hi = (RooRealVar*)fitres_hi->floatParsFinal().find("N_{2S+3S}/N_{1S}");
     printf("\t (2s+3s/1s)_hi = %5.3f +%5.3f %5.3f\n",
 	   f23o1hi->getVal(), f23o1hi->getErrorHi(), f23o1hi->getErrorLo() );   
-    RooRealVar* f23o1pp = (RooRealVar*)fitres_ph->floatParsFinal().find("N_{2S+3S}/N_{1S}");
+    f23o1pp = (RooRealVar*)fitres_ph->floatParsFinal().find("N_{2S+3S}/N_{1S}");
     printf("\t (2s+3s/1s)_pp = %5.3f +%5.3f %5.3f\n",
 	   f23o1pp->getVal(), f23o1pp->getErrorHi(), f23o1pp->getErrorLo() );   
-    double rat   = f23o1hi->getVal() / f23o1pp->getVal();
-    double rat_e = rat * sqrt( pow ( f23o1hi->getError() / f23o1hi->getVal(), 2) + pow(f23o1pp->getError() / f23o1pp->getVal(),2) ); 
+    rat   = f23o1hi->getVal() / f23o1pp->getVal();
+    rat_e = rat * sqrt( pow ( f23o1hi->getError() / f23o1hi->getVal(), 2) + pow(f23o1pp->getError() / f23o1pp->getVal(),2) ); 
     printf("\t (2s+3s/1s)_hi/(2s+3s/1s)_pp  = %5.3f +%5.3f\n",
 	   rat, rat_e); 
-
-    RooRealVar* f23o1hi = (RooRealVar*)fitres_pp->floatParsFinal().find("N_{2S+3S}/N_{1S}");
+    
+    f23o1hi = (RooRealVar*)fitres_pp->floatParsFinal().find("N_{2S+3S}/N_{1S}");
     printf("\t (2s+3s/1s)_p3 = %5.3f +%5.3f %5.3f\n",
 	   f23o1hi->getVal(), f23o1hi->getErrorHi(), f23o1hi->getErrorLo() );   
-    RooRealVar* f23o1pp = (RooRealVar*)fitres_p3->floatParsFinal().find("N_{2S+3S}/N_{1S}");
+    f23o1pp = (RooRealVar*)fitres_p3->floatParsFinal().find("N_{2S+3S}/N_{1S}");
     printf("\t (2s+3s/1s)_p7 = %5.3f +%5.3f %5.3f\n",
 	   f23o1pp->getVal(), f23o1pp->getErrorHi(), f23o1pp->getErrorLo() );   
-    double rat   = f23o1hi->getVal() / f23o1pp->getVal();
-    double rat_e = rat * sqrt( pow ( f23o1hi->getError() / f23o1hi->getVal(), 2) + pow(f23o1pp->getError() / f23o1pp->getVal(),2) ); 
+    rat   = f23o1hi->getVal() / f23o1pp->getVal();
+    rat_e = rat * sqrt( pow ( f23o1hi->getError() / f23o1hi->getVal(), 2) + pow(f23o1pp->getError() / f23o1pp->getVal(),2) ); 
     printf("\t (2s+3s/1s)_p3/(2s+3s/1s)_p7  = %5.3f +%5.3f\n",
 	   rat, rat_e); 
   }
-
+  
   if(fit_simul_hi_pp) {
     printf("simultaneous heavyion pp sample fitting\n");
-    RooRealVar* f23o1hi = (RooRealVar*)fitres_hi_pp->floatParsFinal().find("N_{2S+3S}/N_{1S}");
+    f23o1hi = (RooRealVar*)fitres_hi_pp->floatParsFinal().find("N_{2S+3S}/N_{1S}");
     printf("\t (2s+3s/1s)_pp = %5.3f +%5.3f %5.3f\n",
 	   f23o1hi->getVal(), f23o1hi->getErrorHi(), f23o1hi->getErrorLo() );
-    RooRealVar* rat23o1 = (RooRealVar*)fitres_hi_pp->floatParsFinal().find("r(23/1;hi/pp)");
+    rat23o1 = (RooRealVar*)fitres_hi_pp->floatParsFinal().find("r(23/1;hi/pp)");
     printf("\t (2s+3s/1s)_hi/(2s+3s/1s)_pp = %5.3f +%5.3f %5.3f\n",
 	   rat23o1->getVal(), rat23o1->getErrorHi(), rat23o1->getErrorLo() );
+
+    f2o1hi = (RooRealVar*)fitres_hi_pp->floatParsFinal().find("N_{2S}/N_{1S}");
+    printf("\t (2s/1s)_pp = %5.3f +%5.3f %5.3f\n",
+	   f2o1hi->getVal(), f2o1hi->getErrorHi(), f2o1hi->getErrorLo() );
+    rat2o1 = (RooRealVar*)fitres_hi_pp->floatParsFinal().find("r(2/1;hi/pp)");
+    printf("\t (2s/1s)_hi/(2s/1s)_pp = %5.3f +%5.3f %5.3f\n",
+	   rat2o1->getVal(), rat2o1->getErrorHi(), rat2o1->getErrorLo() );
   }
+
  if(fit_simul_pp_p3) {
     printf("simultaneous pp 2.76 vs 7 TeV sample fitting\n");
-    RooRealVar* f23o1hi = (RooRealVar*)fitres_pp_p3->floatParsFinal().find("N_{2S+3S}/N_{1S}");
+    f23o1hi = (RooRealVar*)fitres_pp_p3->floatParsFinal().find("N_{2S+3S}/N_{1S}");
     printf("\t (2s+3s/1s)_p7 = %5.3f +%5.3f %5.3f\n",
 	   f23o1hi->getVal(), f23o1hi->getErrorHi(), f23o1hi->getErrorLo() );
-    RooRealVar* rat23o1 = (RooRealVar*)fitres_pp_p3->floatParsFinal().find("r(23/1;hi/pp)");
+    rat23o1 = (RooRealVar*)fitres_pp_p3->floatParsFinal().find("r(23/1;hi/pp)");
     printf("\t (2s+3s/1s)_p3/(2s+3s/1s)_p7 = %5.3f +%5.3f %5.3f\n",
 	   rat23o1->getVal(), rat23o1->getErrorHi(), rat23o1->getErrorLo() );
   }
-
-
 
   return;
 
@@ -384,8 +439,8 @@ RooAbsPdf* buildPdf() {
 
   const int nt = 1000;					 
   RooRealVar *nsig1  = new RooRealVar("N_{1S}","signal 1s yield",  0.6*nt,0,10*nt);
-  RooRealVar *nsig2  = new RooRealVar("N_{2S}","signal 2s yield",  0.3*nt,0,10*nt);
-  RooRealVar *nsig3  = new RooRealVar("N_{3S}","signal 3s yield",  0.1*nt,0,10*nt);
+  //RooRealVar *nsig2  = new RooRealVar("N_{2S}","signal 2s yield",  0.3*nt,0,10*nt);
+  //RooRealVar *nsig3  = new RooRealVar("N_{3S}","signal 3s yield",  0.1*nt,0,10*nt);
   RooRealVar *nbkgd  = new RooRealVar("N_{bkg}","brackground yield",  5*nt,0,100*nt); 
 
   //const int nt = 50000;					 
@@ -416,7 +471,7 @@ RooAbsPdf* buildPdf() {
 				     RooArgList(*nsig1f,*nsig2f,*nsig3f,*nbkgd)
 				     );
 
-  wks->import(*pdf);
+  //wks->import(*pdf);
 
 
   return pdf;
@@ -471,16 +526,16 @@ RooSimultaneous* buildPdfSimul(RooCategory* sample) {
   //RooRealVar *bkglbd  = new RooRealVar("bkg_{expo}", "background a1", 0, -2, 2);
   //RooAbsPdf   *bkgPdf = new RooExponential("bkg", "bkg exponential", *mass, *bkglbd);
 
- const int nt = 100;					 
+  int nt = 100;					 
   RooRealVar *nsig1  = new RooRealVar("N_{1S}","signal 1s yield",    0.6*nt,0,10*nt);
-  RooRealVar *nsig2  = new RooRealVar("N_{2S}","signal 2s yield",    0.5*nt,0,10*nt);
-  RooRealVar *nsig3  = new RooRealVar("N_{3S}","signal 3s yield",    0.3*nt,0,10*nt);
+  //RooRealVar *nsig2  = new RooRealVar("N_{2S}","signal 2s yield",    0.5*nt,0,10*nt);
+  //RooRealVar *nsig3  = new RooRealVar("N_{3S}","signal 3s yield",    0.3*nt,0,10*nt);
   RooRealVar *nbkgd  = new RooRealVar("N_{bkg}","brackground yield",  5*nt,0,100*nt); 
 
   nt*=10;
   RooRealVar *nsig1_ctl = new RooRealVar("N_{1S,pp}" ,"control signal 1s yield",  0.6*nt,0,10*nt);
-  RooRealVar *nsig2_ctl = new RooRealVar("N_{2S,pp}" ,"control signal 2s yield",  0.3*nt,0,10*nt);
-  RooRealVar *nsig3_ctl = new RooRealVar("N_{3S,pp}" ,"control signal 3s yield",  0.1*nt,0,10*nt);
+  //RooRealVar *nsig2_ctl = new RooRealVar("N_{2S,pp}" ,"control signal 2s yield",  0.3*nt,0,10*nt);
+  //RooRealVar *nsig3_ctl = new RooRealVar("N_{3S,pp}" ,"control signal 3s yield",  0.1*nt,0,10*nt);
   RooRealVar *nbkgd_ctl = new RooRealVar("N_{bkg,pp}","control brackground yield", 10*nt,0,100*nt);
 
   RooFormulaVar *nsig1f, *nsig2f, *nsig3f;
@@ -532,15 +587,14 @@ RooSimultaneous* buildPdfSimul(RooCategory* sample) {
    */
 
   RooAddPdf  *pdf_ctl  = new RooAddPdf ("pdf_ctl","total pdf control", 
-				     RooArgList(*sig1S,*sig2S,*sig3S,*bkgPdf_ctl),
-				     RooArgList(*nsig1f_ctl,*nsig2f_ctl,*nsig3f_ctl,*nbkgd_ctl)
+					RooArgList(*sig1S,*sig2S,*sig3S,*bkgPdf_ctl),
+					RooArgList(*nsig1f_ctl,*nsig2f_ctl,*nsig3f_ctl,*nbkgd_ctl)
 					);
-
+  
   RooAddPdf  *pdf_main = new RooAddPdf ("pdf_main","total pdf main", 
-				     RooArgList(*sig1S,*sig2S,*sig3S,*bkgPdf),
-				     RooArgList(*nsig1f,*nsig2f,*nsig3f,*nbkgd)
-				     );
-
+					RooArgList(*sig1S,*sig2S,*sig3S,*bkgPdf),
+					RooArgList(*nsig1f,*nsig2f,*nsig3f,*nbkgd)
+					);
 
   //RooCategory sampler("sampler","sampler") ;
   //sampler.defineType("heavyion");
@@ -549,16 +603,218 @@ RooSimultaneous* buildPdfSimul(RooCategory* sample) {
   RooSimultaneous *simPdf = new RooSimultaneous("simPdf","simultaneous pdf",*sample);
   simPdf->addPdf(*pdf_ctl, "ppreference");
   simPdf->addPdf(*pdf_main,"heavyion");
+
+  wks->import(*simPdf);
+
+  wks->defineSet("poiSet","r(23/1;hi/pp)");
+  wks->defineSet("obsSet","invariantMass");
+  wks->defineSet("nuisanceSet","#mu_{M}"); // does not like spaces
+
   return simPdf;
 
   //wks->import(*pdf_ctl);
   //wks->import(*pdf_main);
 }
 
+
+void computeLimit() {
+
+  ModelConfig* mc = new ModelConfig("mconf", wks);
+  
+  RooAbsPdf* model = wks->pdf("simPdf");
+  RooDataSet* data = (RooDataSet*)wks->data("combData");
+
+  //RooFitResult* fit = model->fitTo(*data,Save());
+  //RooFitResult* fit = *wks->pdf("simPdf")->fitTo(*wks->data("combData"),Save());
+
+  //model->Print("v");
+  //data->Print("v");
+
+  mc->SetWorkspace(*wks);
+  mc->SetPdf(*(wks->pdf("simPdf")));
+  mc->SetObservables( *wks->set("obsSet") );
+  mc->SetParametersOfInterest( *wks->set("poiSet") );
+  mc->SetNuisanceParameters( *wks->set("nuisanceSet") );
+
+  double conf_level = 0.95;
+
+  //  StandardBayesianMCMCInterval(wks,mc, data, conf_level, 0,10000,100,"mc2.gif",1); 
+
+			     //double left_side_tail_fraction = -1.0,
+			     //int n_mcmc_iterations = 1000000,
+			     //int n_mcmc_burn_in_steps = 500,
+			     //const char * posterior_plot_file_name = 0,
+			     //int verbosity = 1);
+
+  bool doLp = 0;
+  bool doFc = 0;
+  bool doMc = 1;
+
+
+  /// ---- likelihood ratio -------------------------------
+
+  ProfileLikelihoodCalculator plc(*data, *mc); 
+  plc.SetTestSize(1);
+  plc.SetConfidenceLevel(conf_level);
+  ConfInterval* lpInt = NULL;
+  LikelihoodIntervalPlot plotIntLP;
+  if(doLp) {
+    lpInt = plc.GetInterval(); 
+    plotIntLP = LikelihoodIntervalPlot(((LikelihoodInterval*)lpInt));
+    plotIntLP.SetTitle("Profile Likelihood Ratio and Posterior for X23");
+    //plotIntLP.SetNPoints(10);
+    plotIntLP.SetRange(0,1);
+  }
+  /*
+    define null model for ratio?
+    cout get HypoTestResult (GetHypoTest()), and fom there p-value and (1-sided gaussian) significance?
+  */
+
+  
+  /// ---- feldman-cousins -------------------------------
+
+  FeldmanCousins fc(*data, *mc);
+  fc.UseAdaptiveSampling(true);
+  fc.FluctuateNumDataEntries(false); // number counting analysis: dataset always has 1 entry with N events observed
+  fc.SetNBins(100); // number of points to test per parameter
+  fc.SetTestSize(.1);
+  //  fc.SaveBeltToFile(true); // optional
+  ConfInterval* fcint = NULL;
+  LikelihoodIntervalPlot plotIntFC;
+  if(doFc) {
+    fcint = fc.GetInterval();  // that was easy.
+    plotIntFC = (LikelihoodInterval*)fcint;
+    plotIntFC = LikelihoodIntervalPlot((LikelihoodInterval*)fcint);
+    plotIntFC.SetTitle("fc interval");
+  }
+
+  /* problem:
+     Exception: RooAbsTestStatistic::initSimMode() ERROR, index category of simultaneous pdf 
+       is missing in dataset, aborting
+     http://root.cern.ch/svn/root/trunk/roofit/roofitcore/src/RooAbsTestStatistic.cxx
+     RooAbsTestStatistic::initSimMode(...)
+  */
+
+  ///.---- Markov chain monte carlo -------------------------------
+
+  RooUniform prior("prior","",*mc->GetParametersOfInterest());
+  wks->import(prior);
+  mc->SetPriorPdf( *(wks->pdf("prior")) );
+
+  RooFitResult* fit = model->fitTo(*data,Save());
+
+  ProposalHelper ph;
+  ph.SetVariables((RooArgSet&)fit->floatParsFinal());
+  ph.SetCovMatrix(fit->covarianceMatrix());
+  ph.SetUpdateProposalParameters(kTRUE); // auto-create mean vars and add mappings
+  ph.SetCacheSize(100);
+  ProposalFunction* pf = ph.GetProposalFunction();
+  
+  MCMCCalculator mcmc( *data, *mc );
+  mcmc.SetConfidenceLevel(conf_level);
+  mcmc.SetProposalFunction(*pf);
+  mcmc.SetLeftSideTailFraction(0);
+  //mcmc.SetNumBins(100);
+  mcmc.SetNumIters(100000);    // Metropolis-Hastings algorithm iterations
+  mcmc.SetNumBurnInSteps(100); // first N steps to be ignored as burn-in
+  //mcmc.SetTestSize(0.1);
+  /*
+    for some combinations get:
+    [#0] ERROR:InputArguments -- MCMCInterval::CreateVector: creation of vector failed: Number of burn-in steps (num steps to ignore) >= number of steps in Markov chain.
+
+  */
+
+  MCMCInterval*	mcInt = NULL;
+  MCMCIntervalPlot plotIntMC;
+
+  if(doMc) {
+    mcInt = mcmc.GetInterval();
+    plotIntMC = MCMCIntervalPlot(*mcInt);
+  }
+  
+  if(doLp) {
+    TCanvas* lrCanvas = new TCanvas("lrCanvas");
+    //lrCanvas->Divide(2,1);
+    //lrCanvas->cd(1);
+    plotIntLP.Draw();
+    lrCanvas->SaveAs("lr.gif");
+  }    
+
+  TCanvas* fcCanvas= NULL;
+  if(doFc) {
+    fcCanvas = new TCanvas("fcCanvas");
+    plotIntFC.Draw();
+  }
+
+  if(doMc) {
+    TCanvas mcCanvas("mcCanvas");
+    mcCanvas.Divide(2);
+    mcCanvas.cd(1);
+    plotIntMC.Draw();
+    mcCanvas.cd(2);
+    plotIntMC.DrawNLLHist();
+    //mcCanvas.cd(3);
+    //plotIntMC.DrawNLLVsTime();
+    //mcCanvas.cd(4);
+    //plotIntMC.DrawWeightHist();
+    mcCanvas.SaveAs("mc.gif");
+  }
+
+
+  RooRealVar* poi = (RooRealVar*) mc->GetParametersOfInterest()->first();
+  cout << "Interval calculation for " <<poi->GetName()<< " @ :" << conf_level << ":" << endl;
+  
+  // Get Lower and Upper limits from Profile Calculator
+  if(doLp)
+    cout << "\nLR limts: ["
+	 << ((LikelihoodInterval*)lpInt)->LowerLimit(*poi) << ", "
+	 << ((LikelihoodInterval*)lpInt)->UpperLimit(*poi) <<"] "
+	 << endl;
+  
+  // Get Lower and Upper limits from FeldmanCousins with profile construction
+  if (doFc && fcint != NULL) {
+    cout << "\nFC limts: ["
+	 << ((PointSetInterval*)fcint)->LowerLimit(*poi) << ", "
+	 << ((PointSetInterval*)fcint)->UpperLimit(*poi) <<"] "
+	 << endl;
+    double fcul = ((PointSetInterval*) fcint)->UpperLimit(*poi);
+    double fcll = ((PointSetInterval*) fcint)->LowerLimit(*poi);
+    //cout << "FC lower limit on s = " << fcll << endl;
+    //cout << "FC upper limit on s = " << fcul << endl;
+    TLine* fcllLine = new TLine(fcll, 0, fcll, 1);
+    TLine* fculLine = new TLine(fcul, 0, fcul, 1);
+    fcllLine->SetLineColor(kRed);
+    fculLine->SetLineColor(kRed);
+    fcCanvas->cd();
+    fcllLine->Draw("same");
+    fculLine->Draw("same");
+    fcCanvas->Update();
+    fcCanvas->SaveAs("fc.gif");
+  }
+
+  cout << "a9\n";
+
+  if(doMc)
+    cout << "\nMC mc limts: ["
+	 << ((MCMCInterval*)mcInt)->LowerLimit(*poi) << ", "
+	 << ((MCMCInterval*)mcInt)->UpperLimit(*poi) <<"] "
+	 << "\n\t actual confidence level: " << ((MCMCInterval*)mcInt)->GetActualConfidenceLevel( )
+	 << endl << flush;
+  
+  cout << "a10\n";
+
+  delete model;
+  delete data;
+  delete poi;
+  delete fcCanvas;
+
+  return;
+}
+
 RooFitResult* fitYield(RooDataSet *data, RooAbsPdf *pdf, TString name) {
 
   RooFitResult* fitres;
-  double mmax(mmax_), mmin(mmin_);
+  //double mmax(mmax_), mmin(mmin_);
 
   //if (name.Contains("_p3")) {
   //  if (mmax_>15) mmax = 15;
@@ -600,8 +856,8 @@ RooFitResult* fitYield(RooDataSet *data, RooAbsPdf *pdf, TString name) {
 //  need to fix + plus use more recent root version to access new roostats fucntionality
 void llprof(RooDataSet *data, RooAbsPdf *pdf, RooRealVar *frac){
 
-  RooAbsReal* nll = pdf->createNLL(*data,NumCPU(4)) ;
-  RooMinuit(*nll).migrad() ;
+  RooAbsReal* nll = pdf->createNLL(*data,NumCPU(4));
+  RooMinuit(*nll).migrad();
 
   return;
 
@@ -610,13 +866,13 @@ void llprof(RooDataSet *data, RooAbsPdf *pdf, RooRealVar *frac){
 
   RooAbsReal* pll_frac = nll->createProfile(*frac) ;
   pll_frac->plotOn(frame1,LineColor(kRed)) ;
-
+  
   frame1->SetMinimum(0) ;
   frame1->SetMaximum(3) ;
-
+  
   TCanvas c1;
   frame1->Draw() ;
-  c1.SavaAs("ll.gif")
+  c1.SaveAs("ll.gif");
 
   /*
   //profile likelihood
@@ -628,7 +884,6 @@ void llprof(RooDataSet *data, RooAbsPdf *pdf, RooRealVar *frac){
   TCanvas c1; c1.cd(); 
   plot.Draw();
   */
-
 }
 
 
@@ -655,10 +910,10 @@ void plotDistributions(RooDataSet* data_hi, RooDataSet* data_ph, RooDataSet* dat
     //  http://root.cern.ch/root/html/TH1.html#TH1:Chi2Test
     // -- use pp vs p3 as calibration/cross-check
 
-    TH1* h_mass_ks_hi =  h_mass_hi->Clone();
-    TH1* h_mass_ks_ph =  h_mass_ph->Clone();
-    TH1* h_mass_ks_pp =  h_mass_pp->Clone();
-    TH1* h_mass_ks_p3 =  h_mass_p3->Clone();
+    TH1* h_mass_ks_hi =  (TH1*) h_mass_hi->Clone();
+    TH1* h_mass_ks_ph =  (TH1*) h_mass_ph->Clone();
+    TH1* h_mass_ks_pp =  (TH1*) h_mass_pp->Clone();
+    TH1* h_mass_ks_p3 =  (TH1*) h_mass_p3->Clone();
     
     h_mass_ks_hi->Sumw2();
     h_mass_ks_ph->Sumw2();
@@ -737,7 +992,6 @@ void plotDistributions(RooDataSet* data_hi, RooDataSet* data_ph, RooDataSet* dat
     c_pt.SaveAs(figDir+"pt_mu.gif");
 
 
-    double k3 = 3;
     int nbins = 10;
     TH1* h_pt_ups_hi = (TH1*) data_hi->reduce(Cut("invariantMass>9.2&invariantMass<10.6"))->createHistogram("upsPt",nbins);
     TH1* h_pt_ups_ph = (TH1*) data_ph->reduce(Cut("invariantMass>9.2&invariantMass<10.6"))->createHistogram("upsPt",nbins);
@@ -771,12 +1025,12 @@ void dumpFitVal(RooFitResult *fitres, TString str) {
   RooRealVar* nevt = (RooRealVar*)fitres->floatParsFinal().find("N_{1S}");
   RooRealVar* fr23 = (RooRealVar*)fitres->floatParsFinal().find("N_{2S+3S}/N_{1S}");
   RooRealVar* fr2  = (RooRealVar*)fitres->floatParsFinal().find("N_{2S}/N_{1S}");
-
+  
   TString resol;
   if(!reso)
     resol+="fixed";
   else
-    reso = TString::Format("%4.2f +-%4.2f"reso->getVal(), reso->getError());
+    resol = TString::Format("%4.2f +-%4.2f",reso->getVal(), reso->getError());
   //printf("separate sample fitting\n");
   //printf("\t yield \t\t sigma \t\t N23/N1 \t\t N3/N2 \n");
   printf("%s\t %s \t  %4.2f +-%4.2f \t  %4.2f +-%4.2f \t  %4.2f +-%4.2f \n", 
