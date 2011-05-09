@@ -111,12 +111,14 @@ TString figDir("figs/");
 RooWorkspace* wks = new RooWorkspace("wks","upsilon mass");
 
 RooAbsPdf* buildPdf(); //pdf for separate fitting
-RooSimultaneous* buildPdfSimul(RooCategory*); // pdf for simultabeous fitting
+RooSimultaneous* buildPdfSimul(RooCategory*, TString dataName); // pdf for simultabeous fitting
 RooFitResult* fitYield(RooDataSet*, RooAbsPdf *pdf, TString); 
 void dumpFitVal(RooFitResult*, TString);
 void plotDistributions(RooDataSet* hi, RooDataSet* ph, RooDataSet* pp, RooDataSet* p3);
 void llprof(RooDataSet*, RooAbsPdf*, RooRealVar*); /*placeholder*/
-
+void systematic_sigma(RooAbsPdf *pdf, RooDataSet *data, RooRealVar *sigma1, RooRealVar *ratio1, RooRealVar *ratio2, TString);
+void systematic_CB(RooAbsPdf *pdf, RooDataSet *data, RooRealVar *npow, RooRealVar *alpha, RooRealVar *ratio1, RooRealVar *ratio2, TString figName_);
+void setLimit(float xMin, float xMax, RooAbsPdf *pdf, RooDataSet *data, RooRealVar *param, float baseNll);
 void computeLimit();
 
 void suppress(double ptmumin = 4.0) {
@@ -238,7 +240,7 @@ void suppress(double ptmumin = 4.0) {
   sample->defineType("heavyion") ;
   sample->defineType("ppreference") ;
   
-  RooSimultaneous* simPdf = buildPdfSimul(sample);
+  RooSimultaneous* simPdf;
   
   bool fit_simul_hi_pp = 1;
   RooFitResult* fitres_hi_pp;
@@ -247,8 +249,10 @@ void suppress(double ptmumin = 4.0) {
       RooDataSet("combData","combined data hi pp",
 		 *mass,Index(*sample),Import("heavyion",*data_hi),Import("ppreference",*data_ph));
  
+	data_comb_hi_pp->SetName("combined_hi_pp_data");
     //wks->import(*sample);
     wks->import(*data_comb_hi_pp);
+	simPdf = buildPdfSimul(sample,"combined_hi_pp_data");
    
     //computeLimit();
     //return;
@@ -481,7 +485,7 @@ RooAbsPdf* buildPdf() {
 
 
 //define simultaneous PDF
-RooSimultaneous* buildPdfSimul(RooCategory* sample) {
+RooSimultaneous* buildPdfSimul(RooCategory* sample, TString dataName) {
 
   RooRealVar *mass = wks->var("invariantMass");
 
@@ -554,8 +558,8 @@ RooSimultaneous* buildPdfSimul(RooCategory* sample) {
   //nsig2f = new RooFormulaVar("nsig2f","@0*@1"  , RooArgList(*nsig1,*f2o1));
   //nsig3f = new RooFormulaVar("nsig3f","@0*@1"  , RooArgList(*nsig1,*f3o1));
   
-  RooRealVar *ratio1 = new RooRealVar("r(23/1;hi/pp)","hi-pp 2s+3s/1s ratio",0.3,negFr,10); 
-  RooRealVar *ratio2 = new RooRealVar("r(2/1;hi/pp)" ,"hi-pp 2s/1s ratio"   ,0.3,negFr,10); 
+  RooRealVar *ratio1 = new RooRealVar("r(23/1;hi/pp)","chi23_ratio",0.3,negFr,10); 
+  RooRealVar *ratio2 = new RooRealVar("r(2/1;hi/pp)" ,"chi2_ratio" ,0.3,negFr,10); 
 
   RooRealVar *f23o1_ctl = new RooRealVar("N_{2S+3S}/N_{1S}","2+3/1 sig fration",0.3,negFr,10); 
   RooRealVar *f2o1_ctl  = new RooRealVar("N_{2S}/N_{1S}"   ,"2/1  sig fration" ,0.3,negFr,10); 
@@ -621,6 +625,15 @@ RooSimultaneous* buildPdfSimul(RooCategory* sample) {
   //wks->defineSet("poiSet","N_{1S}");
   wks->defineSet("obsSet","invariantMass");
   wks->defineSet("nuisanceSet","#mu_{M}"); // does not like spaces
+
+  //systematic
+  RooDataSet* data = wks->data(dataName);
+  //systematic_sigma(simPdf,data,sigma1,ratio1,ratio2,"syst_sigma");
+  //systematic_CB(simPdf,data,npow,alpha,ratio1,ratio2,"syst_CB");
+
+  //using my own limit function
+  //setLimit(-0.4, 1.6, simPdf, data, ratio1, -3501.97);
+  //setLimit(-0.4, 1.6, simPdf, data, ratio2, -3501.97);
 
   return simPdf;
 
@@ -818,6 +831,187 @@ void computeLimit() {
 
   return;
 }
+
+
+void systematic_sigma(RooAbsPdf *pdf, RooDataSet *data, RooRealVar *sigma1, RooRealVar *ratio1, RooRealVar *ratio2, TString figName_){
+    TH1F *chi2_syst = new TH1F("chi2_syst","chi_{2}_sigma_syst",80,0.27,0.47);
+    TH1F *chi23_syst = new TH1F("chi23_syst","chi_{23}_sigma_syst",80,0.22,0.42);
+    TRandom R_sigma;
+    for (int i=0; i<500; i++){
+        double width_syst = R_sigma.Gaus(0.092,0.005);
+        sigma1->setVal(width_syst);
+        sigma1->setConstant(kTRUE);
+
+        RooFitResult *fit_syst_sigma;
+        fit_syst_sigma = pdf->fitTo(*data,Save(kTRUE));
+        chi2_syst->Fill(ratio2->getVal());
+        chi23_syst->Fill(ratio1->getVal());
+    }
+
+    TCanvas *c2 = new TCanvas("c2","c2");c2->cd();
+    chi2_syst->GetXaxis()->SetTitle("#chi_{2}");
+    chi2_syst->Draw();
+    chi2_syst->Fit("gaus");
+    chi2_syst->SetLineColor(kBlue);
+    c2->SaveAs(figDir+figName_+"_chi2.pdf");
+    c2->SaveAs(figDir+figName_+"_chi2.gif");
+
+    TCanvas *c3 = new TCanvas("c3","c3");c3->cd();
+    chi23_syst->GetXaxis()->SetTitle("#chi_{23}");
+    chi23_syst->Draw();
+    chi23_syst->Fit("gaus");
+    chi23_syst->SetLineColor(kBlue);
+    c3->SaveAs(figDir+figName_+"_chi23.pdf");
+    c3->SaveAs(figDir+figName_+"_chi23.gif");
+	sigma1->setVal(0.092);
+	sigma1->setConstant(kTRUE);
+
+}
+
+
+void systematic_CB(RooAbsPdf *pdf, RooDataSet *data, RooRealVar *npow, RooRealVar *alpha, RooRealVar *ratio1, RooRealVar *ratio2, TString figName_){
+    TH1F *chi2_syst = new TH1F("chi2_syst","#chi_{2}_CB_syst",80,0.35,0.38);
+    TH1F *chi23_syst = new TH1F("chi23_syst","chi_{23}_CB_syst",80,0.30,0.33);
+
+    TFile nllf("Y1SsigMCFit.root");
+    RooFitResult *nll;
+    nllf.GetObject("hiFitResult", nll);
+    assert(nll);
+    newPars = new RooArgSet(nll->randomizePars());
+    newPars->Print("v");
+    nllf.Close();
+
+    for (int i=0; i<500; i++){
+        nll->randomizePars();
+        CBalpha = newPars->getRealValue("alpha", 1.6);
+        CBnpow = newPars->getRealValue("npow", 2.3);
+        cout<<CBalpha<<" "<<CBnpow<<endl;
+
+        alpha->setVal(CBalpha);
+        npow->setVal(CBnpow);
+        npow ->setConstant(kTRUE);
+        alpha->setConstant(kTRUE);
+
+        RooFitResult *fit_syst_sigma;
+        fit_syst_sigma = pdf->fitTo(*data,Save(kTRUE));
+        chi2_syst->Fill(ratio2->getVal());
+        chi23_syst->Fill(ratio1->getVal());
+    }
+
+    TCanvas *c2 = new TCanvas("c2","c2");c2->cd();
+    chi2_syst->GetXaxis()->SetTitle("#chi_{2}");
+    chi2_syst->Draw();
+    chi2_syst->Fit("gaus");
+    chi2_syst->SetLineColor(kBlue);
+    c2->SaveAs(figDir+figName_+"_chi2.pdf");
+    c2->SaveAs(figDir+figName_+"_chi2.gif");
+
+    TCanvas *c3 = new TCanvas("c3","c3");c3->cd();
+    chi23_syst->GetXaxis()->SetTitle("#chi_{23}");
+    chi23_syst->Draw();
+    chi23_syst->Fit("gaus");
+    chi23_syst->SetLineColor(kBlue);
+    c3->SaveAs(figDir+figName_+"_chi23.pdf");
+    c3->SaveAs(figDir+figName_+"_chi23.gif");
+
+    alpha->setVal(1.6);
+    npow->setVal(2.3);
+    npow ->setConstant(kTRUE);
+    alpha->setConstant(kTRUE);
+}
+
+
+void setLimit(float xMin, float xMax, RooAbsPdf *pdf, RooDataSet *data, RooRealVar *param, float baseNll){
+    //setting up upper limits
+    TCanvas c2; c2.cd();
+    int totalBins = 200;
+    float BinWidth = (xMax - xMin)/totalBins;
+    TH1F *h1 = new TH1F("h1","h1",totalBins,xMin,xMax);
+    h1->GetXaxis()->SetTitle(param->getTitle());
+    //h1->GetXaxis()->SetRangeUser(-0.1,0.9);
+    h1->GetYaxis()->SetTitle("Maximum likelihood");
+    TH1F *h2 = new TH1F("h2","h2",totalBins,xMin,xMax);
+    gStyle->SetOptStat(kFALSE);
+    RooFitResult* fit_nll;
+    double MinNll, L, cl; 
+    for (int i=1; i<=totalBins; i++) {
+        param->setVal(xMin + BinWidth*(i-1));
+        param->setConstant(kTRUE);
+        fit_nll = pdf->fitTo(*data,Save(kTRUE));
+        MinNll = fit_nll->minNll()-baseNll;
+        L = TMath::Exp(-MinNll);
+        cout<<"x = "<<param->getVal()<<", MinNll = "<<MinNll<<", L = "<<L<<endl;
+        h1->SetBinContent(i,L);
+    }   
+    for (int i=1; i<=totalBins; i++) {
+        cout<<"bin "<<i<<" = "<< h1->GetBinContent(i)<<endl;
+    }   
+    h1->Draw();
+    cout<<endl<<"integral = "<<h1->Integral(1,totalBins)<<endl<<endl;
+    h1->Scale(1.0/h1->Integral(1,totalBins));
+    h1->Draw();
+    c2.Update();
+
+    //convoluted with systematic gaussian
+    TH1F *h3 = new TH1F("h3","h3",totalBins,xMin,xMax);
+    TH1F *h4 = new TH1F("h4","h4",totalBins,xMin,xMax);
+    for (int i=1; i<=totalBins; i++) {
+        float gausmean = xMin + BinWidth*(i-1);
+        cout<<"gausmean = "<<gausmean;
+        float gaussigma = 0.06; //absolute systematic
+        TH1F *h_syst = new TH1F("h_syst","syst histogram",totalBins,xMin,xMax);
+        for (Int_t k=0;k<10000;k++) {h_syst->Fill(gRandom->Gaus(gausmean,gaussigma));}
+        double new_nll = 0;
+        for (int j=1; j<=totalBins; j++){
+            new_nll += (h_syst->GetBinContent(j) * h1->GetBinContent(j));
+        }
+        cout<<", new value after convolution in bin "<<i<<" = "<<new_nll<<endl;
+        h3->SetBinContent(i,new_nll);
+        delete h_syst;
+    }
+    cout<<endl<<"integral = "<<h3->Integral(1,totalBins)<<endl<<endl;
+    h3->Scale(1.0/h3->Integral(1,totalBins));
+    h3->SetLineColor(kMagenta);
+    h3->SetLineWidth(2);
+    h3->SetLineStyle(2);
+    h3->Draw("same");
+
+    //find out the upper limit
+    c2.Update();
+    float UpperLimit;
+    double CI = 0.95; //0.842; //0.158;
+    for (int i=1; i<=totalBins; i++) {
+        cl = h3->Integral(1,i);
+        cout<<"x = "<< xMin + BinWidth*(i-1) << ", y = " << h3->GetBinContent(i) <<", cl = "<<cl<<endl;
+        if (cl<CI) UpperLimit = xMin + BinWidth*(i-1+1);
+        h4->SetBinContent(i,cl);
+    }
+    float rightmax = 1.1*h4->GetMaximum();
+    float y_scale = gPad->GetUymax()/rightmax;
+    cout<<gPad->GetUymax()<<" rightmax = "<<rightmax<<", scale = "<<y_scale<<endl;
+    h4->SetLineWidth(2);
+    h4->SetLineColor(kRed);
+    h4->Scale(y_scale);
+    h4->Draw("same");
+    TGaxis *axis = new TGaxis(gPad->GetUxmax(),gPad->GetUymin(),gPad->GetUxmax(), gPad->GetUymax(),0,rightmax,510,"+L");
+    axis->SetLineColor(kRed); axis->SetLabelColor(kRed);
+    axis->SetTitle("confidence level"); axis->SetTitleColor(kRed);
+    axis->Draw();
+
+    TLine L1(xMin,y_scale*CI,xMax,y_scale*CI);
+    L1.SetLineColor(kBlue);
+    L1.Draw();
+    TLine L2(UpperLimit,0,UpperLimit,gPad->GetUymax());
+    L2.SetLineColor(kBlue);
+    L2.Draw();
+
+    TString paramName = param->GetTitle();
+    c2.SaveAs(figDir+"UpperLimits_"+paramName+"_hi_syst_Extend1.gif");
+    c2.SaveAs(figDir+"UpperLimits_"+paramName+"_hi_syst_Extend1.pdf");
+	param->setConstant(kFALSE);
+    delete h1; delete h2; delete h3; delete h4;
+}
+
 
 RooFitResult* fitYield(RooDataSet *data, RooAbsPdf *pdf, TString name) {
 
