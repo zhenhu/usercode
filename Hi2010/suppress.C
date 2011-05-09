@@ -252,8 +252,9 @@ void suppress(double ptmumin = 4.0) {
    
     //computeLimit();
     //return;
-
+   
     fitres_hi_pp = simPdf->fitTo(*data_comb_hi_pp, Save(),Extended(kTRUE), Minos(doMinos));
+    //fitres_hi_pp = simPdf->fitTo(*data_comb_hi_pp, Save(),Extended(kTRUE),Constrain(*wks->var("#sigma_{M}")), Minos(doMinos));
 
     RooPlot* frame_hi = mass->frame(Bins(nMassBins_),Title("Heavy Ion sample"));
     RooPlot* frame_pp = mass->frame(Bins(nMassBins_),Title("pp 3.76 TeV sample"));
@@ -510,7 +511,7 @@ RooSimultaneous* buildPdfSimul(RooCategory* sample) {
   RooRealVar *alpha  = new RooRealVar("CB_{#alpha}","tail shift",1.6,0.2,4);
   RooRealVar *npow   = new RooRealVar("CB_{n}","power order"    ,2.3,  1,3);
   npow ->setConstant(kTRUE);
-  alpha->setConstant(kTRUE);
+  alpha->setConstant(kTRUE);//if using the constraint alpha or npow, please remove these lines
 
   RooCBShape  *sig1S = new RooCBShape ("sig1s", "cb 1s", *mass,*mean1S,*reso1S,*alpha,*npow); 
   RooCBShape  *sig2S = new RooCBShape ("sig2s", "cb 2s", *mass,*mean2S,*reso2S,*alpha,*npow); 
@@ -586,15 +587,25 @@ RooSimultaneous* buildPdfSimul(RooCategory* sample) {
 
    */
 
+ RooAbsPdf* sigma_constr = new RooGaussian("sigma_constr","sigma_constraint",*sigma1,RooConst(sigma1->getVal()),RooConst(0.050));
+ RooAbsPdf* alpha_constr = new RooGaussian("alpha_constr","alpha_constraint",*alpha,RooConst(alpha->getVal()),RooConst(0.2));
+
+
   RooAddPdf  *pdf_ctl  = new RooAddPdf ("pdf_ctl","total pdf control", 
 					RooArgList(*sig1S,*sig2S,*sig3S,*bkgPdf_ctl),
 					RooArgList(*nsig1f_ctl,*nsig2f_ctl,*nsig3f_ctl,*nbkgd_ctl)
 					);
   
-  RooAddPdf  *pdf_main = new RooAddPdf ("pdf_main","total pdf main", 
+  RooAddPdf  *pdf_uncons = new RooAddPdf ("pdf_uncons","total pdf main", 
 					RooArgList(*sig1S,*sig2S,*sig3S,*bkgPdf),
 					RooArgList(*nsig1f,*nsig2f,*nsig3f,*nbkgd)
 					);
+
+
+  RooProdPdf *pdf_main = new RooProdPdf("pdf_main","final pdf",RooArgSet(*pdf_uncons));
+  //constraint pdf
+  //RooProdPdf *pdf_main = new RooProdPdf("pdf_main","final pdf",RooArgSet(*pdf_uncons,*sigma_constr,*alpha_constr));
+
 
   //RooCategory sampler("sampler","sampler") ;
   //sampler.defineType("heavyion");
@@ -607,6 +618,7 @@ RooSimultaneous* buildPdfSimul(RooCategory* sample) {
   wks->import(*simPdf);
 
   wks->defineSet("poiSet","r(23/1;hi/pp)");
+  //wks->defineSet("poiSet","N_{1S}");
   wks->defineSet("obsSet","invariantMass");
   wks->defineSet("nuisanceSet","#mu_{M}"); // does not like spaces
 
@@ -646,9 +658,9 @@ void computeLimit() {
 			     //const char * posterior_plot_file_name = 0,
 			     //int verbosity = 1);
 
-  bool doLp = 0;
-  bool doFc = 0;
-  bool doMc = 1;
+  bool doLp = 1; //likelihood profile
+  bool doFc = 0; //Feldman-Cousins
+  bool doMc = 0; //Markov-Chain monte carlo
 
 
   /// ---- likelihood ratio -------------------------------
@@ -792,8 +804,6 @@ void computeLimit() {
     fcCanvas->SaveAs("fc.gif");
   }
 
-  cout << "a9\n";
-
   if(doMc)
     cout << "\nMC mc limts: ["
 	 << ((MCMCInterval*)mcInt)->LowerLimit(*poi) << ", "
@@ -801,8 +811,6 @@ void computeLimit() {
 	 << "\n\t actual confidence level: " << ((MCMCInterval*)mcInt)->GetActualConfidenceLevel( )
 	 << endl << flush;
   
-  cout << "a10\n";
-
   delete model;
   delete data;
   delete poi;
