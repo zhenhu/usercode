@@ -40,7 +40,7 @@ double mass_h = 14.0;
 #define fmax_ mass_h
 double binw_ = 0.14;
 double width_ = 0.092; //0.087;
-bool plotpars = 0;//false;
+bool plotpars = 1;//false;
 bool doMinos = 1;//kFALSE;
 bool PbPb = 1;
 RooRealVar *f2Svs1S_pp = new RooRealVar("N_{3S}/N_{1S}pp","Y(3S)/Y(1S) yields pp ratio",0.45455,-1,5);
@@ -60,7 +60,7 @@ TString figName_;
 //TString figName_("masspeak_Hi"); //output fig names
 //TString figName_("masspeak_pp_HIrereco");
 //TString figName_("masspeak_pp");
-//TString figName_("masspeak_7TeV_40pb");
+//TString figName_("masspeak_7TeV_3pb");
 
 TString figs_("finalplots/"); //output fig location
 const TString dirname_("");//"upsilonYield"); tree location in input file 
@@ -70,15 +70,14 @@ TString suffix_, cut_;
 using namespace RooFit;
 using namespace RooStats;
 void fitpeaks(int bin);
-void suppression(RooRealVar*, RooFitResult*, RooAbsPdf*, RooAbsPdf*, int, RooDataSet*, RooPlot*, int binMax, int binMin);
+void sidebandFit(bool, RooRealVar*, RooRealVar*, RooRealVar*, RooAbsPdf*, RooAbsPdf*, RooDataSet*, RooPlot*);
+void suppression(RooRealVar*, RooFitResult*, RooAbsPdf*, RooAbsPdf*, int, RooDataSet*, RooPlot*);
 void setUpLimits(float xMin, float xMax, RooAbsPdf*, RooDataSet*, RooRealVar*, float baseNll);
 pair<double, double> ConfidencInterval(float, RooRealVar *fnll, RooDataSet *data, RooAbsPdf *pdf);
 
 void fitUpsilonYields(){
 	gROOT->LoadMacro("setTDRStyle_modified.C");
 	//setTDRStyle();
-
-	//double original_yields[9] = {84.7363, 48.703, 36.5036, 22.285, 29.8004, 32.5132, 41.3552, 17.2833, 24.2914};
 
 	if (PbPb) {
 		finput = "MassTree_NewCuts_hi.root";
@@ -131,15 +130,15 @@ void fitUpsilonYields(){
 				suffix_="_eta12-24"; binw_=0.2;
 				break;
 			case 3:
-				cut_="muPlusPt > 3.5 && muMinusPt > 3.5 && upsPt<20 && Centrality>=0 && Centrality<4";
+				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt<20 && Centrality>=0 && Centrality<4";
 				suffix_="_cntr0-10"; binw_=0.2;
 				break;
 			case 4:
-				cut_="muPlusPt > 3.5 && muMinusPt > 3.5 && upsPt<20 && Centrality>=4 && Centrality<8";
+				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt<20 && Centrality>=4 && Centrality<8";
 				suffix_="_cntr10-20"; binw_=0.2;
 				break;
 			case 5:
-				cut_="muPlusPt > 3.5 && muMinusPt > 3.5 && upsPt<20 && Centrality>=8 && Centrality<50";
+				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt<20 && Centrality>=8 && Centrality<50";
 				suffix_="_cntr20-100"; binw_=0.2;
 				break;
 			case 6:
@@ -212,8 +211,9 @@ void fitUpsilonYields(){
 		outfile<<endl<<"**********"<<suffix_<<"**********"<<endl<<endl;
 
 		RooRealVar* mass  = new RooRealVar("invariantMass","#mu#mu mass",mmin_,mmax_,"GeV/c^{2}");
-		mass->setRange("R1",8,9.8);
-		mass->setRange("R2",10.6,12);
+		mass->setRange("R1",7.0,8.8);
+		mass->setRange("R2",8.8,10.6);
+		mass->setRange("R3",10.6,14);
 		const double M1S = 9.46;   //upsilon 1S pgd mass value
 		const double M2S = 10.02;  //upsilon 2S pgd mass value
 		const double M3S = 10.35;  //upsilon 3S pgd mass value
@@ -261,7 +261,7 @@ void fitUpsilonYields(){
 		//mean->setConstant(kTRUE);
 		sigma1->setVal(0);
 		sigma1->setConstant(kTRUE);
-		sigma2->setVal(width_);
+		sigma2->setVal(width_);        //fix the resolution
 		sigma2->setConstant(kTRUE);
 
 		/// Upsilon 2S
@@ -283,29 +283,34 @@ void fitUpsilonYields(){
 		/// Background
 		RooRealVar *bkg_a1  = new RooRealVar("bkg_{a1}", "background a1", 0, -1, 1);
 		RooRealVar *bkg_a2  = new RooRealVar("bkg_{a2}", "background a2", 0, -1, 1);
-		RooAbsPdf  *bkgPdf  = new RooChebychev("bkg","linear background",
+		RooAbsPdf  *bkgPdf  = new RooChebychev("bkg","background",
 				*mass, RooArgList(*bkg_a1,*bkg_a2));
 		//bkg_a1->setVal(0);
 		//bkg_a1->setConstant(kTRUE);
 		//bkg_a2->setVal(0);
 		//bkg_a2->setConstant(kTRUE);
 
+		// only sideband region pdf, using RooPolynomial instead of RooChebychev for multiple ranges fit
+		RooRealVar *SB_bkg_a1  = new RooRealVar("SB bkg_{a1}", "background a1", 0, -1, 1);
+		RooRealVar *SB_bkg_a2  = new RooRealVar("SB bkg_{a2}", "background a2", 0, -1, 1);
+		RooAbsPdf  *SB_bkgPdf  = new RooPolynomial("SB_bkg","side-band background",
+				*mass, RooArgList(*SB_bkg_a1,*SB_bkg_a2));
+
 		/// Combined pdf
 		int nt = 100000;
-
 		//bool fitfraction = true;
-
 		RooRealVar *nbkgd = new RooRealVar("N_{bkg}","nbkgd",nt*0.75,0,10*nt);
+		RooRealVar *SB_nbkgd = new RooRealVar("SB N_{bkg}","SB_nbkgd",nt*0.75,0,10*nt);
 		RooRealVar *nsig1f  = new RooRealVar("N_{#Upsilon(1S)}","nsig1S",   nt*0.25,0,10*nt);
 
-		//use yields of 2S and 3S as free parameters
+		//use the YIELDs of 2S and 3S as free parameters
 		//RooRealVar *nsig2f  = new RooRealVar("N_{#Upsilon(2S)}","nsig2S",   nt*0.25,0,10*nt);
 		//RooRealVar *nsig3f  = new RooRealVar("N_{#Upsilon(3S)}","nsig3S",   nt*0.25,0,10*nt);
 
-		//use ratio of 2S and 3S as free parameters
-		RooRealVar *f2Svs1S = new RooRealVar("N_{2S}/N_{1S}","f2Svs1S",0.4,0,-0.3,1.1);
-		//RooRealVar *f3Svs1S = new RooRealVar("N_{3S}/N_{1S}","f3Svs1S",0.3,-0.3,1.1);
-		RooRealVar *f23vs1S = new RooRealVar("N_{2S+3S}/N_{1S}","f23vs1S",0.5,-0.3,1.1);
+		//use the RATIOs of 2S and 3S as free parameters
+		RooRealVar *f2Svs1S = new RooRealVar("N_{2S}/N_{1S}","f2Svs1S",0.4,-0.1,1);
+		//RooRealVar *f3Svs1S = new RooRealVar("N_{3S}/N_{1S}","f3Svs1S",0.3,-0.1,1);
+		RooRealVar *f23vs1S = new RooRealVar("N_{2S+3S}/N_{1S}","f23vs1S",0.5,-0.1,1);
 		RooFormulaVar *nsig2f = new RooFormulaVar("nsig2S","@0*@1", RooArgList(*nsig1f,*f2Svs1S));
 		//RooFormulaVar *nsig3f = new RooFormulaVar("nsig3S","@0*@1", RooArgList(*nsig1f,*f3Svs1S));
 		RooFormulaVar *nsig3f = new RooFormulaVar("nsig3S","@0*@2-@0*@1", RooArgList(*nsig1f,*f2Svs1S,*f23vs1S));
@@ -316,10 +321,21 @@ void fitUpsilonYields(){
 		RooFormulaVar *nsig2f_ = new RooFormulaVar("nsig2S_pp","@0*@1", RooArgList(*nsig1f,*f2Svs1S_pp)); 
 		RooFormulaVar *nsig3f_ = new RooFormulaVar("nsig3S_pp","@0*@1", RooArgList(*nsig1f,*f3Svs1S_pp)); 
 
+		//only sideband region pdf, using RooPolynomial instead of RooChebychev for multiple ranges fit
+		RooAbsPdf  *SB_pdf = new RooAddPdf ("SB_pdf","sideband background pdf",
+				RooArgList(*SB_bkgPdf),
+				RooArgList(*SB_nbkgd));
+		//only signal region pdf, using RooPolynomial instead of RooChebychev for multiple ranges fit
+		RooAbsPdf  *S_pdf   = new RooAddPdf ("S_pdf","total signal+background pdf",
+				RooArgList(*gauss1S2,*sig2S,*sig3S,*SB_bkgPdf),
+				RooArgList(*nsig1f,*nsig2f,*nsig3f,*SB_nbkgd));
+
+		//default pdf
 		RooAbsPdf  *pdf   = new RooAddPdf ("pdf","total signal+background pdf",
 				RooArgList(*gauss1S2,*sig2S,*sig3S,*bkgPdf),
 				RooArgList(*nsig1f,*nsig2f,*nsig3f,*nbkgd));
-		//force the ratio to the pp value
+
+		//pdf with fixed ratio of the pp ratio
 		RooAbsPdf  *pdf_pp   = new RooAddPdf ("pdf_pp","total signal+background pdf",
 				RooArgList(*gauss1S2,*sig2S,*sig3S,*bkgPdf),
 				RooArgList(*nsig1f,*nsig2f_,*nsig3f_,*nbkgd));
@@ -328,7 +344,7 @@ void fitUpsilonYields(){
 		/// Background pdf for the pre-fit with only Y(1S) peak 
 		RooRealVar *bkg_a1_pre  = new RooRealVar("bkg_a1_pre", "background a1", 0, -1, 1);
 		RooRealVar *bkg_a2_pre  = new RooRealVar("bkg_a2_pre", "background a2", 0, -1, 1);
-		RooAbsPdf  *bkgPdf_pre  = new RooChebychev("bkgPdf_pre","linear background",
+		RooAbsPdf  *bkgPdf_pre  = new RooChebychev("bkgPdf_pre","background",
 		 *mass, RooArgList(*bkg_a1_pre,*bkg_a2_pre));
 		//bkg_a2_pre->setVal(0);
 		//bkg_a2_pre->setConstant(kTRUE);
@@ -348,24 +364,21 @@ void fitUpsilonYields(){
 		RooRealVar* upsEta = new RooRealVar("upsEta",  "upsEta"  ,-7,7);
 		RooRealVar* upsRapidity = new RooRealVar("upsRapidity",  "upsRapidity"  ,-2.4,2.4);
 		RooRealVar* vProb = new RooRealVar("vProb",  "vProb"  ,0,1);
-		/*******************comment the next line for running the pp trees*****************/
-		//RooRealVar* Centrality = new RooRealVar("Centrality",  "Centrality"  ,0,40);
-		/**********************************************************************************/
+		RooRealVar* QQsign = new RooRealVar("QQsign",  "QQsign"  ,-1,5);
+		RooRealVar* weight = new RooRealVar("weight",  "weight"  ,-2,2);
+		if (PbPb) RooRealVar* Centrality = new RooRealVar("Centrality",  "Centrality"  ,0,40);
 		RooRealVar* muPlusPt = new RooRealVar("muPlusPt","muPlusPt",0,50);
 		RooRealVar* muPlusEta = new RooRealVar("muPlusEta","muPlusEta",-2.5,2.5);
 		RooRealVar* muMinusPt = new RooRealVar("muMinusPt","muMinusPt",0,50);
 		RooRealVar* muMinusEta = new RooRealVar("muMinusEta","muMinusEta",-2.5,2.5);
 
 		RooDataSet* data0, *data;
-		/***********************************for HI*****************************************/
-		//data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*vProb,*upsPt,*Centrality,*muPlusPt,*muMinusPt));
-		/***********************************for pp*****************************************/
-		data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*upsPt,*muPlusPt,*muMinusPt,*muPlusEta,*muMinusEta));
-		/**********************************************************************************/
+		if (PbPb) data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*vProb,*upsPt,*Centrality,*muPlusPt,*muMinusPt));
+		//data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*upsPt,*muPlusPt,*muMinusPt,*QQsign,*weight));
+		else data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*upsPt,*muPlusPt,*muMinusPt,*muPlusEta,*muMinusEta));
 		data0->Print();
 		data = ( RooDataSet*) data0->reduce(Cut(cut_));
 		data->Print();
-
 
 		//the pre-fit with only Y(1S) pdf
 		//RooFitResult* fit_1st = pdf_pre->fitTo(*data,Range("R1,R2"),Save(kTRUE));
@@ -378,94 +391,179 @@ void fitUpsilonYields(){
 		RooPlot* frame = mass->frame(Bins(nbins),Range(mmin_,mmax_));
 		data->plotOn(frame,Name("theData"),MarkerSize(0.8));
 		//pdf_pre->plotOn(frame,LineColor(kRed));
-		//pdf_pre->plotOn(frame,Components(bkgPdf_pre),LineStyle(kDashed));i
+		//pdf_pre->plotOn(frame,Components(bkgPdf_pre),LineStyle(kDashed));
 		//if(plotpars) pdf_pre->paramOn(frame,Layout(0.65));
-
 
 		//the nominal fit with default pdf 
 		RooFitResult* fit_2nd = pdf->fitTo(*data,Save(kTRUE),Extended(kTRUE),Minos(doMinos));
 		//plot
 		pdf->plotOn(frame,Name("thePdf"));
-		//pdf->plotOn(frame,Components(bkgPdf),LineStyle(kDashed));
+		pdf->plotOn(frame,Components("bkg"),Name("theBkg"),LineStyle(kDashed));
 		RooArgSet * pars = pdf->getParameters(data);
-		//calculate chi2 in a mass range
-		float bin_Min = (9.6-mmin_)/binw_;
-		float bin_Max = (10.6-mmin_)/binw_;
-		int binMin = (int)bin_Min;
-		int binMax = (int)bin_Max;
 		int nfloatpars = pars->selectByAttrib("Constant",kFALSE)->getSize();
 		float myndof = frame->GetNbinsX() - nfloatpars;
-		double mychsq = frame->mychiSquare("thePdf","theData",nfloatpars,false,binMin,binMax)*myndof;
+		double mychsq = frame->chiSquare("thePdf","theData",nfloatpars)*myndof;
 		if(plotpars) {
 			paramOn_ = "_paramOn";
-			pdf->paramOn(frame,Layout(0.6,0.95,0.95),Label(Form("#chi^{2}/ndf = %2.1f/%2.0f", mychsq,myndof)));
+			pdf->paramOn(frame,Layout(0.5,0.9,0.95),Label(Form("#chi^{2}/ndf = %2.1f/%2.0f", mychsq,myndof)));
 		}
 		else paramOn_ = "";
 
 		outfile<<"Y(1S) yield  : = "<<nsig1f->getVal()<<" +/- "<<nsig1f->getError()<<endl<<endl;
-		//outfile<<"2S/1S        : = "<<f2Svs1S->getVal()<<" +/- "<<f2Svs1S->getError()<<endl<<endl;
-		//outfile<<"(3S+2S)/1S   : = "<<f23vs1S->getVal()<<" +/- "<<f23vs1S->getError()<<endl<<endl;
-		//outfile<<"2S/1S suppression  : = "<< f2Svs1S->getVal()/f2Svs1S_pp->getVal() <<endl<<endl;
-		//outfile<<"(3S+2S)/1S suppression  : = "<< f23vs1S->getVal()/(f2Svs1S_pp->getVal()+f3Svs1S_pp->getVal())<<endl<<endl;
+		outfile<<"2S/1S        : = "<<f2Svs1S->getVal()<<" +/- "<<f2Svs1S->getError()<<endl<<endl;
+		outfile<<"(3S+2S)/1S   : = "<<f23vs1S->getVal()<<" +/- "<<f23vs1S->getError()<<endl<<endl;
+		outfile<<"2S/1S suppression  : = "<< f2Svs1S->getVal()/f2Svs1S_pp->getVal() <<endl<<endl;
+		outfile<<"(3S+2S)/1S suppression  : = "<< f23vs1S->getVal()/(f2Svs1S_pp->getVal()+f3Svs1S_pp->getVal())<<endl<<endl;
 		outfile<<"free parameter = "<< nfloatpars << ", mychi2 = " << mychsq << ", ndof = " << myndof  << endl << endl;
 
 		//draw and save plots
 		data->plotOn(frame,MarkerSize(0.8));
 		frame->SetTitle( "" );
 		frame->GetXaxis()->SetTitle("#mu#mu invariant mass [GeV/c^{2}]");
-		frame->GetYaxis()->SetTitleOffset(0.9);//(1.3);
-		frame->GetYaxis()->SetTitleSize(0.05);
+		//frame->GetYaxis()->SetTitleOffset(0.9);//(1.3);
+		//frame->GetYaxis()->SetLabelSize(0.05);
 		frame->Draw();
 		if(!plotpars) {
 			if (PbPb){
 				TLatex latex1;
-				latex1.DrawLatex(10.4,57, "CMS, PbPb, #sqrt{s} = 2.76 TeV");   
+				latex1.DrawLatex(10.2,57, "CMS, PbPb, #sqrt{s_{NN}} = 2.76 TeV");   
 				TLatex latex2;
-				latex2.DrawLatex(10.4,50,"p_{T}^{#mu} > 4 GeV/c, |#eta^{#mu}| < 2.4");   
+				latex2.DrawLatex(10.2,50,"p_{T}^{#mu} > 4 GeV/c, |#eta^{#mu}| < 2.4");   
 				TLatex latex3;
-				latex3.DrawLatex(10.4,43,"p_{T}^{#Upsilon} < 20 GeV/c");
+				latex3.DrawLatex(10.2,43,"p_{T}^{#Upsilon} < 20 GeV/c");
+				TLatex latex5;
+				latex5.DrawLatex(10.2,36,"L_{int} = 7.28 #mub^{-1}");
 				TLatex latex4;
 				latex4.DrawLatex(7.5,57, "b)");
 			}
 			else {
 				TLatex latex1;
-				latex1.DrawLatex(10.4,71, "CMS, pp, #sqrt{s} = 2.76 TeV");   
+				latex1.DrawLatex(10.2,71, "CMS, pp, #sqrt{s} = 2.76 TeV");   
 				TLatex latex2;
-				latex2.DrawLatex(10.4,62,"p_{T}^{#mu} > 4 GeV/c, |#eta^{#mu}| < 2.4");   
+				latex2.DrawLatex(10.2,62,"p_{T}^{#mu} > 4 GeV/c, |#eta^{#mu}| < 2.4");   
 				TLatex latex3;
-				latex3.DrawLatex(10.4,53,"p_{T}^{#Upsilon} < 20 GeV/c");
+				latex3.DrawLatex(10.2,53,"p_{T}^{#Upsilon} < 20 GeV/c");
+				TLatex latex5;
+				latex5.DrawLatex(10.2,44,"L_{int} = 225 nb^{-1}");
 				TLatex latex4;
 				latex4.DrawLatex(7.5,71, "a)");
 			}		
 
 		}
-		c.SaveAs(figs_+figName_+paramOn_+suffix_+".root");
-		c.SaveAs(figs_+figName_+paramOn_+suffix_+".eps");
+		//	c.SaveAs(figs_+figName_+paramOn_+suffix_+".root");
+		//	c.SaveAs(figs_+figName_+paramOn_+suffix_+".eps");
 		c.SaveAs(figs_+figName_+paramOn_+suffix_+".gif");
 		c.SaveAs(figs_+figName_+paramOn_+suffix_+".pdf");
 
 		//overlay the pp ratio, calculate the significance of suppression
-		//suppression(nsig1f, fit_2nd, nfloatpars, pdf, pdf_pp, data, frame, binMax, binMin);
+		if (PbPb) suppression(nsig1f, fit_2nd, nfloatpars, pdf, pdf_pp, data, frame);
 
 		//setup the limits
 		float baseNll = fit_2nd->minNll();
-		//setUpLimits(-0.1, 0.9, pdf, data, f23vs1S, baseNll);
+		setUpLimits(-0.08, 0.92, pdf, data, f23vs1S, baseNll);
 		//setUpLimits(-0.1, 0.9, pdf, data, f2Svs1S, baseNll);
 
 		//calculate the confidence interval with RooStats
-		//ConfidencInterval(0.95, f23vs1S, data, pdf);
+		ConfidencInterval(0.95, f23vs1S, data, pdf);
 		//ConfidencInterval(0.95, f2Svs1S, data, pdf);
+
+		//sidebandFit
+		sidebandFit(1, SB_bkg_a1, SB_bkg_a2, SB_nbkgd, S_pdf, SB_pdf, data, frame);
 
 		// Print fit results 
 		cout << endl << "figure name: "<< figName_ << endl << endl;
-		//cout << "the pre-fit with only Y1S pdf" << endl ;
+		//cout << "the pre-fit with only sideband pdf" << endl ;
 		//fit_1st->Print() ;
 		cout << "the nominal fit with the default pdf " << endl ;
 		fit_2nd->Print() ;
 		cout << "  free parameter = "<< nfloatpars << ", mychi2 = " << mychsq << ", ndof = " << myndof << endl << endl;
-		//cout << "the layout fit with the pp ratio" <<endl;
 	}
 
+
+void sidebandFit(bool range, RooRealVar *SB_bkg_a1, RooRealVar *SB_bkg_a2, RooRealVar *SB_nbkgd, RooAbsPdf *S_pdf, RooAbsPdf *SB_pdf, RooDataSet *data, RooPlot *frame){
+	TCanvas c3; c3.cd();
+	frame->remove("thePdf");
+	frame->remove("theBkg");
+	frame->remove("thePdf_pp");
+	RooFitResult* fit_SB = SB_pdf->fitTo(*data,Range("R1,R3"), Save(kTRUE),Extended(kTRUE),Minos(doMinos));
+	SB_pdf->plotOn(frame,Name("theBkg_SB"),LineColor(kRed));
+	if(plotpars) {
+		SB_pdf->paramOn(frame,Layout(0.5,0.9,0.65));
+	}   
+	SB_bkg_a1->setConstant(kTRUE);
+	SB_bkg_a2->setConstant(kTRUE);
+
+	if (!range) {
+		//fit full mass spectrum
+		RooFitResult* fit_S = S_pdf->fitTo(*data,Save(kTRUE),Extended(kTRUE),Minos(doMinos));
+		S_pdf->plotOn(frame,Name("thePdf_SB"));
+		RooArgSet * pars = S_pdf->getParameters(data);
+		int nfloatpars = pars->selectByAttrib("Constant",kFALSE)->getSize();
+		float myndof = frame->GetNbinsX() - nfloatpars;
+		double mychsq = frame->chiSquare("thePdf_SB","theData",nfloatpars)*myndof;
+	}
+	else {
+		//fit in the signal range only
+		if (PbPb) SB_nbkgd->setVal(SB_nbkgd->getVal()*0.90);
+		else SB_nbkgd->setVal(SB_nbkgd->getVal()*0.97);
+		SB_nbkgd->setConstant(kTRUE);
+		RooFitResult* fit_S = S_pdf->fitTo(*data,Range("R2"),Save(kTRUE),Extended(kTRUE),Minos(doMinos));
+		S_pdf->plotOn(frame,/*Range("Full"),*/Name("thePdf_SB"));
+		RooArgSet * pars = S_pdf->getParameters(data);
+		//calculate chi2 in a mass range
+		float bin_Min = (8.8-mmin_)/binw_;
+		float bin_Max = (10.6-mmin_)/binw_;
+		int binMin = ceil(bin_Min);
+		int binMax = ceil(bin_Max);
+		int nfloatpars = pars->selectByAttrib("Constant",kFALSE)->getSize();
+		//float myndof = frame->GetNbinsX() - nfloatpars;
+		float myndof = ceil((10.6-8.8)/binw_) - nfloatpars;
+		cout<<binMin<<" "<<binMax<<" "<<nfloatpars<<" "<<myndof<<endl;
+		double mychsq = frame->mychiSquare("thePdf_SB","theData",nfloatpars,true,binMin,binMax)*myndof;
+	}
+	if(plotpars) {
+		paramOn_ = "_paramOn";
+		S_pdf->paramOn(frame,Layout(0.5,0.9,0.95),Label(Form("#chi^{2}/ndf = %2.1f/%2.0f", mychsq,myndof)));
+	}   
+	else paramOn_ = ""; 
+
+	cout << endl << "figure name: "<< figName_ << endl << endl;
+	cout << "the sideband pdf" << endl ;
+	fit_SB->Print() ;
+	cout << "the signal pdf " << endl ;
+	fit_S->Print() ;
+	data->plotOn(frame,MarkerSize(0.8));
+	frame->Draw();
+	if(!plotpars) {
+		if (PbPb){
+			TLatex latex1;
+			latex1.DrawLatex(10.2,57, "CMS, PbPb, #sqrt{s_{NN}} = 2.76 TeV");   
+			TLatex latex2;
+			latex2.DrawLatex(10.2,50,"p_{T}^{#mu} > 4 GeV/c, |#eta^{#mu}| < 2.4");   
+			TLatex latex3;
+			latex3.DrawLatex(10.2,43,"p_{T}^{#Upsilon} < 20 GeV/c");
+			TLatex latex5;
+			latex5.DrawLatex(10.2,36,"L_{int} = 7.28 #mub^{-1}");
+			TLatex latex4;
+			latex4.DrawLatex(7.5,57, "b)");
+		}   
+		else {
+			TLatex latex1;
+			latex1.DrawLatex(10.2,71, "CMS, pp, #sqrt{s} = 2.76 TeV");   
+			TLatex latex2;
+			latex2.DrawLatex(10.2,62,"p_{T}^{#mu} > 4 GeV/c, |#eta^{#mu}| < 2.4");   
+			TLatex latex3;
+			latex3.DrawLatex(10.2,53,"p_{T}^{#Upsilon} < 20 GeV/c");
+			TLatex latex5;
+			latex5.DrawLatex(10.2,44,"L_{int} = 225 nb^{-1}");
+			TLatex latex4;
+			latex4.DrawLatex(7.5,71, "a)");
+		}            
+
+	}   
+	c3.SaveAs(figs_+"sideband_"+figName_+paramOn_+suffix_+".gif");
+	c3.SaveAs(figs_+"sideband_"+figName_+paramOn_+suffix_+".pdf");
+}
 
 //calculate the confidence interval with RooStats
 pair<double, double> ConfidencInterval(float CI, RooRealVar *fnll, RooDataSet *data, RooAbsPdf *pdf)  {  
@@ -489,17 +587,16 @@ pair<double, double> ConfidencInterval(float CI, RooRealVar *fnll, RooDataSet *d
 }
 
 
-void suppression(RooRealVar *nsig1f, RooFitResult *fit_2nd, int nfloatpars, RooAbsPdf *pdf, RooAbsPdf *pdf_pp, RooDataSet *data, RooPlot *frame, int binMax, int binMin){
+void suppression(RooRealVar *nsig1f, RooFitResult *fit_2nd, int nfloatpars, RooAbsPdf *pdf, RooAbsPdf *pdf_pp, RooDataSet *data, RooPlot *frame){
 	//the layout fit with pp ratio pdf
 	//nsig1f->setVal(84.47);
 	TCanvas c1; c1.cd();
-	pdf->plotOn(frame,Name("thePdf"));
+	//pdf->plotOn(frame,Name("thePdf"));
 	nsig1f->setConstant(kTRUE);  //fix the 1S yield to the value from the default fit 
 	RooFitResult* fit_3rd = pdf_pp->fitTo(*data,Save(kTRUE),Extended(kTRUE));
 	pdf_pp->plotOn(frame,Name("thePdf_pp"),LineStyle(kDashed),LineColor(kRed));
 	RooArgSet * pars_pp = pdf_pp->getParameters(data);
 	int nfloatpars_pp = pars_pp->selectByAttrib("Constant",kFALSE)->getSize();
-	float chi_2_pp = frame->mychiSquare("thePdf_pp","theData",0,false,binMin,binMax);
 	float nll2 = fit_2nd->minNll();
 	float nll3 = fit_3rd->minNll();
 	double chi = 2.0*(nll3-nll2);
@@ -516,30 +613,32 @@ void suppression(RooRealVar *nsig1f, RooFitResult *fit_2nd, int nfloatpars, RooA
 	//draw and save plots
 	data->plotOn(frame,MarkerSize(0.8));
 	frame->Draw();
-	TLatex latex1;
-	latex1.DrawLatex(10.4,57, "CMS, PbPb, #sqrt{s} = 2.76 TeV");
-	TLatex latex2;
-	latex2.DrawLatex(10.4,50,"p_{T}^{#mu} > 4 GeV/c, |#eta^{#mu}| < 2.4");
-	TLatex latex3;
-	latex3.DrawLatex(10.4,43,"p_{T}^{#Upsilon} < 20 GeV/c");
-	TLatex latex4;
-	latex4.DrawLatex(7.5,57, "b)");
-	TLatex latex5;
-	latex5.DrawLatex(12,30, "pp lineshape");
-	TLatex latex6;
-	latex5.DrawLatex(12,23, "PbPb fit");
-	TLine L1(11.4,31,11.9,31);
-	L1.SetLineColor(kRed);
-	L1.SetLineStyle(kDashed);
-	L1.SetLineWidth(2);
-	L1.Draw();
-	TLine L2(11.4,24,11.9,24);
-	L2.SetLineColor(kBlue);
-	L2.SetLineWidth(2);
-	L2.Draw();
+	if(!plotpars) {
+		TLatex latex1;
+		latex1.DrawLatex(10.4,57, "CMS, PbPb, #sqrt{s} = 2.76 TeV");
+		TLatex latex2;
+		latex2.DrawLatex(10.4,50,"p_{T}^{#mu} > 4 GeV/c, |#eta^{#mu}| < 2.4");
+		TLatex latex3;
+		latex3.DrawLatex(10.4,43,"p_{T}^{#Upsilon} < 20 GeV/c");
+		TLatex latex4;
+		latex4.DrawLatex(7.5,57, "b)");
+		TLatex latex5;
+		latex5.DrawLatex(12,30, "pp lineshape");
+		TLatex latex6;
+		latex5.DrawLatex(12,23, "PbPb fit");
+		TLine L1(11.4,31,11.9,31);
+		L1.SetLineColor(kRed);
+		L1.SetLineStyle(kDashed);
+		L1.SetLineWidth(2);
+		L1.Draw();
+		TLine L2(11.4,24,11.9,24);
+		L2.SetLineColor(kBlue);
+		L2.SetLineWidth(2);
+		L2.Draw();
+	}
 
-	c1.SaveAs(figs_+"overlay1_"+figName_+paramOn_+suffix_+".root");
-	c1.SaveAs(figs_+"overlay1_"+figName_+paramOn_+suffix_+".eps");
+	//c1.SaveAs(figs_+"overlay1_"+figName_+paramOn_+suffix_+".root");
+	//c1.SaveAs(figs_+"overlay1_"+figName_+paramOn_+suffix_+".eps");
 	c1.SaveAs(figs_+"overlay1_"+figName_+paramOn_+suffix_+".gif");
 	c1.SaveAs(figs_+"overlay1_"+figName_+paramOn_+suffix_+".pdf");
 	nsig1f->setConstant(kFALSE);
@@ -599,7 +698,7 @@ void setUpLimits(float xMin, float xMax, RooAbsPdf *pdf, RooDataSet *data, RooRe
 	h3->SetLineColor(kMagenta);
 	h3->SetLineWidth(2);
 	h3->SetLineStyle(2);
-	//h3->Draw("same");
+	h3->Draw("same");
 
 	//find out the upper limit
 	c2.Update();
@@ -634,6 +733,7 @@ void setUpLimits(float xMin, float xMax, RooAbsPdf *pdf, RooDataSet *data, RooRe
 	c2.SaveAs(figs_+"UpperLimits_"+paramName+"_hi_syst_Extend1.gif");
 	c2.SaveAs(figs_+"UpperLimits_"+paramName+"_hi_syst_Extend1.pdf");
 	delete h1; delete h2; delete h3; delete h4;
+	param->setConstant(kFALSE);
 }
 
 
