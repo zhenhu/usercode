@@ -95,7 +95,7 @@ void setTDRStyle();
 
 using namespace RooFit;
 
-bool doMinos = 0;//kFALSE;
+bool doMinos = 1;//kFALSE;
 
 const double mmin_    = 7;  
 const double mmax_    = 14.;
@@ -131,12 +131,12 @@ void suppress(double ptmumin = 4.0) {
   //gROOT->LoadMacro("cms_stat_001.C");
 
   //gROOT->LoadMacro("setTDRStyle_modified.C");
-  setTDRStyle();
+  //setTDRStyle();
   
-  double mass_precision = 0.1;
-  nMassBins_ = (int) (mmax_-mmin_)/mass_precision;
+  double mass_precision = 0.14;
+  nMassBins_ = ceil((mmax_-mmin_)/mass_precision);
   
-  RooRealVar* mass    = new RooRealVar("invariantMass","#mu#mu mass",mmin_,mmax_,"GeV/c^{2}"); 
+  RooRealVar* mass    = new RooRealVar("invariantMass","m_{#mu#mu}",mmin_,mmax_,"GeV/c^{2}"); 
   RooRealVar* muppt   = new RooRealVar("muPlusPt" ,"#mu+ pt"   ,0,50,"GeV/c"); 
   RooRealVar* mumpt   = new RooRealVar("muMinusPt","#mu- pt"  ,0,50,"GeV/c"); 
   RooRealVar* mupeta  = new RooRealVar("muPlusEta" ,"#mu+ eta",-2.4,2.4); 
@@ -249,42 +249,131 @@ void suppress(double ptmumin = 4.0) {
       RooDataSet("combData","combined data hi pp",
 		 *mass,Index(*sample),Import("heavyion",*data_hi),Import("ppreference",*data_ph));
  
-	data_comb_hi_pp->SetName("combined_hi_pp_data");
     //wks->import(*sample);
     wks->import(*data_comb_hi_pp);
-	simPdf = buildPdfSimul(sample,"combined_hi_pp_data");
+	simPdf = buildPdfSimul(sample,"combData");
    
     //computeLimit();
     //return;
-   
+
     fitres_hi_pp = simPdf->fitTo(*data_comb_hi_pp, Save(),Extended(kTRUE), Minos(doMinos));
     //fitres_hi_pp = simPdf->fitTo(*data_comb_hi_pp, Save(),Extended(kTRUE),Constrain(*wks->var("#sigma_{M}")), Minos(doMinos));
 
-    RooPlot* frame_hi = mass->frame(Bins(nMassBins_),Title("Heavy Ion sample"));
-    RooPlot* frame_pp = mass->frame(Bins(nMassBins_),Title("pp 3.76 TeV sample"));
+    RooPlot* frame_hi = mass->frame(Bins(nMassBins_) );//,Title("Heavy Ion sample"));
+    RooPlot* frame_pp = mass->frame(Bins(nMassBins_) );//,Title("pp 2.76 TeV sample"));
     RooPlot* frame_xx = mass->frame(Title("simultaneous fit parameter values"));
 
-    data_comb_hi_pp->plotOn(frame_hi,MarkerStyle(7), DrawOption("E"),Cut("sample==sample::heavyion"));
+    data_comb_hi_pp->plotOn(frame_hi,/*MarkerStyle(7),*/ MarkerSize(1),XErrorSize(0.1),/*,DrawOption("E"),*/Cut("sample==sample::heavyion"));
     simPdf->plotOn(frame_hi,Slice(*sample,"heavyion"),ProjWData(*sample,*data_comb_hi_pp));
     simPdf->plotOn(frame_hi,Slice(*sample,"heavyion"),ProjWData(*sample,*data_comb_hi_pp),Components("bkg"),LineStyle(kDashed));
 
-    data_comb_hi_pp->plotOn(frame_pp,MarkerStyle(7), DrawOption("E"),Cut("sample==sample::ppreference"));
+    data_comb_hi_pp->plotOn(frame_pp,/*MarkerStyle(7),*/ MarkerSize(1),XErrorSize(0.1),/*,DrawOption("E"),*/Cut("sample==sample::ppreference"));
     simPdf->plotOn(frame_pp,Slice(*sample,"ppreference"),ProjWData(*sample,*data_comb_hi_pp));
     simPdf->plotOn(frame_pp,Slice(*sample,"ppreference"),ProjWData(*sample,*data_comb_hi_pp),Components("bkg_ctl"),LineStyle(kDashed));
     
     simPdf->paramOn(frame_xx, data_comb_hi_pp,"",0,"NELU",0.3,0.9,0.9);
     
-    TCanvas c_sim_hi_pp("c1","c1",1200,400);
+    TCanvas c_sim_hi_pp("c1","c1",1800,600);
     c_sim_hi_pp.Divide(3);
-    c_sim_hi_pp.cd(1);
+    c_sim_hi_pp.cd(2);
     //gPad->SetLeftMargin(0.15) ; 
     //frame_hi->GetYaxis()->SetTitleOffset(1.4);
+	frame_hi->GetXaxis()->CenterTitle(kTRUE);
     frame_hi->Draw();  
-    c_sim_hi_pp.cd(2);
+	
+	int plotpars = 0;
+    if(!plotpars) {
+    float a=62; //196(ppTracker);//77.3(pp);//47(eta0-12);//24.8(cntr0-10);//62(all)
+    float delta=a/62*5;
+    TLatex latex1;
+    latex1.SetTextSize(0.05);
+    latex1.DrawLatex(9.9,a, "CMS Preliminary");
+    TLatex latex2;
+    latex2.SetTextSize(0.05);
+    latex2.DrawLatex(9.9,a-delta, "PbPb  #sqrt{s_{NN}} = 2.76 TeV");
+    a=a-delta/50.0;
+    TLatex latex3;
+    latex3.DrawLatex(9.9,a-2*delta, "0-100%, 0.0 < |y| < 2.4");
+    TLatex latex4;
+    latex4.DrawLatex(9.9,a-3*delta, "0 < p_{T} < 20 GeV/c");
+    TLatex latex5;
+    latex5.DrawLatex(9.9,a-4*delta, "L_{int} = 7.28 #mub^{-1}");
+    //latex5.DrawLatex(9.9,a-3*delta, "L_{int} = 3 pb^{-1}");
+    TLatex latex6;
+    latex6.DrawLatex(7.3,a-3*delta, "p_{T}^{#mu} > 4 GeV/c");
+    TLatex latex7;
+    latex7.DrawLatex(9.9,a-5.5*delta, "#sigma = 92 MeV/c^{2} (fixed to MC)"); 
+    //TLatex latex8;
+    //latex8.DrawLatex(11,a-6*delta, "(fixed to MC)");
+
+    TLatex latex9;
+    latex9.DrawLatex(8,a, "data");  
+    TMarker M(7.55,delta/5.0+a,20);
+    M.Draw();
+    //TLine L0(7.3,delta/4.0+a,7.8,delta/4.0+a);
+    //L0.Draw();
+    //TLine L1(7.55,a,7.55,a);
+    //L1.Draw();
+
+    TLatex latex10;
+    latex10.DrawLatex(8,a-delta, "fit");
+    TLine L2(7.3,delta/5.0+a-delta,7.8,delta/5.0+a-delta);
+    L2.SetLineColor(kBlue);
+    L2.SetLineWidth(2);
+    L2.Draw();
+
+	}
+
+    c_sim_hi_pp.cd(1);
+	frame_pp->GetXaxis()->CenterTitle(kTRUE);
     frame_pp->Draw();  
+
+    if(!plotpars) {
+    float a=77.3; //196(ppTracker);//77.3(pp);//47(eta0-12);//24.8(cntr0-10);//62(all)
+    float delta=a/62*5;
+    TLatex latex1;
+    latex1.SetTextSize(0.05);
+    latex1.DrawLatex(9.9,a, "CMS Preliminary");
+    TLatex latex2;
+    latex2.SetTextSize(0.05);
+    latex2.DrawLatex(9.9,a-delta, "pp  #sqrt{s} = 2.76 TeV");
+    a=a-delta/50.0;
+    TLatex latex3;
+    latex3.DrawLatex(9.9,a-2*delta, "0.0 < |y| < 2.4");
+    TLatex latex4;
+    latex4.DrawLatex(9.9,a-3*delta, "0 < p_{T} < 20 GeV/c");
+    TLatex latex5;
+    latex5.DrawLatex(9.9,a-4*delta, "L_{int} = 225 nb^{-1}");
+    //latex5.DrawLatex(9.9,a-3*delta, "L_{int} = 3 pb^{-1}");
+    TLatex latex6;
+    latex6.DrawLatex(7.3,a-3*delta, "p_{T}^{#mu} > 4 GeV/c");
+    TLatex latex7;
+    latex7.DrawLatex(9.9,a-5.5*delta, "#sigma = 92 MeV/c^{2} (fixed to MC)"); 
+    //TLatex latex8;
+    //latex8.DrawLatex(11,a-6*delta, "(fixed to MC)");
+
+    TLatex latex9;
+    latex9.DrawLatex(8,a, "data");  
+    TMarker M_(7.55,delta/5.0+a,20);
+    M_.Draw();
+    //TLine L0(7.3,delta/4.0+a,7.8,delta/4.0+a);
+    //L0.Draw();
+    //TLine L1(7.55,a,7.55,a);
+    //L1.Draw();
+
+    TLatex latex10;
+    latex10.DrawLatex(8,a-delta, "fit");
+    TLine L2_(7.3,delta/5.0+a-delta,7.8,delta/5.0+a-delta);
+    L2_.SetLineColor(kBlue);
+    L2_.SetLineWidth(2);
+    L2_.Draw();
+
+    }    
+
     c_sim_hi_pp.cd(3);
     frame_xx->Draw();  
     c_sim_hi_pp.SaveAs(figDir+"sim_hi_pp.gif");
+	c_sim_hi_pp.SaveAs(figDir+"sim_hi_pp.pdf");
 
   }
 
@@ -370,10 +459,11 @@ void suppress(double ptmumin = 4.0) {
   if(fit_simul_hi_pp) {
     printf("simultaneous heavyion pp sample fitting\n");
     f23o1hi = (RooRealVar*)fitres_hi_pp->floatParsFinal().find("N_{2S+3S}/N_{1S}");
-    printf("\t (2s+3s/1s)_pp = %5.3f +%5.3f %5.3f\n",
+    //f3o1hi = (RooRealVar*)fitres_hi_pp->floatParsFinal().find("N_{3S}/N_{1S}");
+	printf("\t (23s/1s)_pp = %5.3f +%5.3f %5.3f\n",
 	   f23o1hi->getVal(), f23o1hi->getErrorHi(), f23o1hi->getErrorLo() );
     rat23o1 = (RooRealVar*)fitres_hi_pp->floatParsFinal().find("r(23/1;hi/pp)");
-    printf("\t (2s+3s/1s)_hi/(2s+3s/1s)_pp = %5.3f +%5.3f %5.3f\n",
+    printf("\t (23s/1s)_hi/(23s/1s)_pp = %5.3f +%5.3f %5.3f\n",
 	   rat23o1->getVal(), rat23o1->getErrorHi(), rat23o1->getErrorLo() );
 
     f2o1hi = (RooRealVar*)fitres_hi_pp->floatParsFinal().find("N_{2S}/N_{1S}");
@@ -558,23 +648,28 @@ RooSimultaneous* buildPdfSimul(RooCategory* sample, TString dataName) {
   //nsig2f = new RooFormulaVar("nsig2f","@0*@1"  , RooArgList(*nsig1,*f2o1));
   //nsig3f = new RooFormulaVar("nsig3f","@0*@1"  , RooArgList(*nsig1,*f3o1));
   
+  //RooRealVar *ratio3 = new RooRealVar("r(3/1;hi/pp)","chi3_ratio",0.3,negFr,10);
   RooRealVar *ratio1 = new RooRealVar("r(23/1;hi/pp)","chi23_ratio",0.3,negFr,10); 
   RooRealVar *ratio2 = new RooRealVar("r(2/1;hi/pp)" ,"chi2_ratio" ,0.3,negFr,10); 
 
+  //RooRealVar *f3o1_ctl = new RooRealVar("N_{3S}/N_{1S}","3/1 sig fration",0.3,negFr,10);
   RooRealVar *f23o1_ctl = new RooRealVar("N_{2S+3S}/N_{1S}","2+3/1 sig fration",0.3,negFr,10); 
   RooRealVar *f2o1_ctl  = new RooRealVar("N_{2S}/N_{1S}"   ,"2/1  sig fration" ,0.3,negFr,10); 
 
-  RooFormulaVar *f23o1, *f2o1;
+  RooFormulaVar *f3o1, *f23o1, *f2o1;
+  //f3o1 = new RooFormulaVar("f3o1","@0*@1" , RooArgList(*f3o1_ctl,*ratio3));
   f23o1 = new RooFormulaVar("f23o1","@0*@1" , RooArgList(*f23o1_ctl,*ratio1));
   f2o1  = new RooFormulaVar("f2o1" ,"@0*@1" , RooArgList(*f2o1_ctl ,*ratio2));
 
   nsig1f     = new RooFormulaVar("nsig1f","@0"             , RooArgList(*nsig1));
   nsig2f     = new RooFormulaVar("nsig2f","@0*@1"          , RooArgList(*nsig1,*f2o1));
   nsig3f     = new RooFormulaVar("nsig3f","@0*(@1-@2)"     , RooArgList(*nsig1,*f23o1,*f2o1));
+  //nsig3f     = new RooFormulaVar("nsig3f","@0*@1"     , RooArgList(*nsig1,*f3o1));
 
   nsig1f_ctl = new RooFormulaVar("nsig1f_ctl","@0"         , RooArgList(*nsig1_ctl));
   nsig2f_ctl = new RooFormulaVar("nsig2f_ctl","@0*@1"      , RooArgList(*nsig1_ctl,*f2o1_ctl));
   nsig3f_ctl = new RooFormulaVar("nsig3f_ctl","@0*(@1-@2)" , RooArgList(*nsig1_ctl,*f23o1_ctl,*f2o1_ctl));
+  //nsig3f_ctl = new RooFormulaVar("nsig3f_ctl","@0*@1" , RooArgList(*nsig1_ctl,*f3o1_ctl));
 
   /*
   nsig1f = new RooFormulaVar("nsig1f","@0"         , RooArgList(*nsig1));
@@ -591,8 +686,8 @@ RooSimultaneous* buildPdfSimul(RooCategory* sample, TString dataName) {
 
    */
 
- RooAbsPdf* sigma_constr = new RooGaussian("sigma_constr","sigma_constraint",*sigma1,RooConst(sigma1->getVal()),RooConst(0.050));
- RooAbsPdf* alpha_constr = new RooGaussian("alpha_constr","alpha_constraint",*alpha,RooConst(alpha->getVal()),RooConst(0.2));
+  RooAbsPdf* sigma_constr = new RooGaussian("sigma_constr","sigma_constraint",*sigma1,RooConst(sigma1->getVal()),RooConst(0.050));
+  RooAbsPdf* alpha_constr = new RooGaussian("alpha_constr","alpha_constraint",*alpha,RooConst(alpha->getVal()),RooConst(0.2));
 
 
   RooAddPdf  *pdf_ctl  = new RooAddPdf ("pdf_ctl","total pdf control", 
@@ -661,7 +756,7 @@ void computeLimit() {
   mc->SetParametersOfInterest( *wks->set("poiSet") );
   mc->SetNuisanceParameters( *wks->set("nuisanceSet") );
 
-  double conf_level = 0.95;
+  double conf_level = 0.95; //0.683;
 
   //  StandardBayesianMCMCInterval(wks,mc, data, conf_level, 0,10000,100,"mc2.gif",1); 
 
@@ -817,6 +912,8 @@ void computeLimit() {
     fcCanvas->SaveAs("fc.gif");
   }
 
+  cout << "a9\n";
+
   if(doMc)
     cout << "\nMC mc limts: ["
 	 << ((MCMCInterval*)mcInt)->LowerLimit(*poi) << ", "
@@ -824,6 +921,8 @@ void computeLimit() {
 	 << "\n\t actual confidence level: " << ((MCMCInterval*)mcInt)->GetActualConfidenceLevel( )
 	 << endl << flush;
   
+  cout << "a10\n";
+
   delete model;
   delete data;
   delete poi;
@@ -831,7 +930,6 @@ void computeLimit() {
 
   return;
 }
-
 
 void systematic_sigma(RooAbsPdf *pdf, RooDataSet *data, RooRealVar *sigma1, RooRealVar *ratio1, RooRealVar *ratio2, TString figName_){
     TH1F *chi2_syst = new TH1F("chi2_syst","chi_{2}_sigma_syst",80,0.27,0.47);
@@ -951,6 +1049,7 @@ void setLimit(float xMin, float xMax, RooAbsPdf *pdf, RooDataSet *data, RooRealV
     h1->Scale(1.0/h1->Integral(1,totalBins));
     h1->Draw();
     c2.Update();
+
 
     //convoluted with systematic gaussian
     TH1F *h3 = new TH1F("h3","h3",totalBins,xMin,xMax);
@@ -1246,4 +1345,5 @@ void dumpFitVal(RooFitResult *fitres, TString str) {
   
   return;
 }
+
 
