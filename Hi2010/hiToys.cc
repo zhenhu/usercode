@@ -44,7 +44,7 @@
  */
 void hiToys(int Ntoys, TString parVals, TString outfname, 
 	    TString randfname = "", TString systfname = "",
-	    double desiredX_23 = 1.0,
+	    double desiredX_23 = 1.0, double ppMult = 1.0,
 	    unsigned int seed = 0) {
   RooWorkspace ws;
   mmin = 7.0; mmax = 14.0; //linearbg_ = false;
@@ -52,19 +52,22 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
   dataCat.defineType("hi");
   dataCat.defineType("pp");
   ws.import(dataCat);
-  buildSimPdf(ws, dataCat);
+
 
   RooRandom::randomGenerator()->SetSeed(seed);
 
-  RooSimultaneous * total = dynamic_cast<RooSimultaneous *>(ws.pdf("simPdf"));
+  RooSimultaneous * total = buildSimPdf(ws, dataCat);
+  RooSimultaneous * nullPdf = buildNullPdf(ws, dataCat);
 
+  ws.Print();
   RooRealVar * invariantMass = ws.var("invariantMass");
 
   RooArgSet * pars = total->getParameters(RooArgSet(*invariantMass,dataCat));
 
   pars->readFromFile(parVals);
-  RooArgSet truePars;
+  RooArgSet truePars, holdPars;
   pars->snapshot(truePars, true);
+  pars->snapshot(holdPars, true);
 
   std::cout << "\nfit parameters\n";
   truePars.Print("v");
@@ -105,6 +108,19 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
   RooAbsReal * nsig2 = ws.function("nsig2_pp");
   RooAbsReal * nsig3 = ws.function("nsig3_pp");
 
+  int Nevt_pp(ws.var("nsig1_pp")->getVal() +
+	      ws.function("nsig2_pp")->getVal() +
+	      ws.function("nsig3_pp")->getVal() +
+	      ws.function("nbkg_pp")->getVal() + 0.5);
+  int Nevt_hi(ws.var("nsig1_hi")->getVal() +
+	      ws.function("nsig2_hi")->getVal() +
+	      ws.function("nsig3_hi")->getVal() +
+	      ws.function("nbkg_hi")->getVal() + 0.5);
+
+  Nevt_pp *= ppMult;
+  std::cout << "Nevt_pp: " << Nevt_pp << '\n'
+	    << "Nevt_hi: " << Nevt_hi << '\n';
+
   RooAddPdf sig("sig", "sig", RooArgList(*sig1S, *sig2S, *sig3S),
 		   RooArgList(*nsig1, *nsig2, *nsig3));
 
@@ -117,6 +133,18 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
       nll->randomizePars();
       pars->assignValueOnly(*newPars);
     }
+
+    // std::cout << "\nRandom Pars\n";
+    // pars->Print("v");
+
+    //reset the pp values
+    // pars->setRealValue("f23_pp", holdPars.getRealValue("f23_pp"));
+    // pars->setRealValue("f2_pp", holdPars.getRealValue("f2_pp"));
+    // pars->setRealValue("bkg_a1_pp", holdPars.getRealValue("bkg_a1_pp"));
+    // pars->setRealValue("bkg_a2_pp", holdPars.getRealValue("bkg_a2_pp"));
+
+    pars->setRealValue("nsig1_pp", pars->getRealValue("nsig1_pp")*ppMult);
+    pars->setRealValue("nbkg_pp", pars->getRealValue("nbkg_pp")*ppMult);
 
     if (systRes) {
       systRes->randomizePars();
@@ -131,7 +159,7 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
 				 RooFit::NumEvents(int(pars->getRealValue("nbkg_pp", 387))));
     RooDataSet * ppsig = 
       sig.generate(RooArgSet(*invariantMass),
-		   RooFit::NumEvents(561-ppdata->numEntries()));
+		   RooFit::NumEvents(Nevt_pp - ppdata->numEntries()));
     ppsig->Print();
     ppdata->append(*ppsig);
     delete ppsig;
@@ -148,7 +176,7 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
 
     RooDataSet * hisig = 
       sig.generate(RooArgSet(*invariantMass), //RooFit::Extended(),
-		   RooFit::NumEvents(628-hidata->numEntries()));
+		   RooFit::NumEvents(Nevt_hi - hidata->numEntries()));
     hisig->Print();
     hidata->append(*hisig);
     delete hisig;
@@ -166,10 +194,18 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
 				       RooFit::Link("hi", *hidata));
     
     pars->readFromFile(parVals);
+    pars->setRealValue("nsig1_pp", pars->getRealValue("nsig1_pp")*ppMult);
+    pars->setRealValue("nbkg_pp", pars->getRealValue("nbkg_pp")*ppMult);
     data->Print();
+
+    RooFitResult * nfr = nullPdf->fitTo(*data, RooFit::Extended(),
+					RooFit::Minos(false),
+					RooFit::PrintLevel((Ntoys==1) ? 1 : -1),
+					RooFit::Save(true));
 
     RooFitResult * fr = total->fitTo(*data, RooFit::Extended(),
     				     RooFit::Minos(false),
+				     RooFit::PrintLevel((Ntoys==1) ? 1 : -1),
     				     RooFit::Save(true));
 
     if (Ntoys == 1) {
@@ -193,6 +229,7 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
 
       pars->writeToFile("lastHItoy.txt");
       fr->Print("v");
+      nfr->Print("v");
       TString f2name(f2_pp->getTitle());
       std::cout << "double ratios (hi/pp)\n"
 		<< "---------------------\n"
@@ -205,6 +242,10 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
       fout << "nll " << fr->minNll() << ' '
 	   << "edm " << fr->edm() << ' '
 	   << "covQual " << fr->covQual() << ' ';
+
+      fout << "nll_null " << nfr->minNll() << ' '
+	   << "edm_null " << nfr->edm() << ' '
+	   << "covQual_null " << nfr->covQual() << ' ';
 
       TIter finalPar(fr->floatParsFinal().createIterator());
       RooRealVar * par;
@@ -221,6 +262,7 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
       delete ppdata;
       delete hidata;
       delete fr;
+      delete nfr;
     }
   }
   delete pars;

@@ -1,4 +1,5 @@
 #include "RooSimWSTool.h"
+#include "RooSimPdfBuilder.h"
 #include "RooArgSet.h"
 #include "RooArgList.h"
 #include "RooRealVar.h"
@@ -61,16 +62,16 @@ bool buildPdf(RooWorkspace &ws) {
   RooRealVar nsig1("nsig1", "N_{1S}", 100, -1000, 1e6);
   RooRealVar f23("f23", "(2S+3S)/1S", 0.5);
   f23.setConstant(false);
-  // RooRealVar f2("f2", "2S/1S", 0.2);
-  RooRealVar f2("f2", "3S/2S", 0.6);
+   RooRealVar f2("f2", "2S/1S", 0.2);
+   //RooRealVar f2("f2", "3S/2S", 0.6);
   f2.setConstant(false);
   RooRealVar nbkg("nbkg", "N_{bkg}", 300., -1000., 1e6);
 
-  // RooFormulaVar nsig2("nsig2", "@0*@1", RooArgList(nsig1,f2));
-  // RooFormulaVar nsig3("nsig3", "@0*(@1-@2)", RooArgList(nsig1, f23, f2));
+  RooFormulaVar nsig2("nsig2", "@0*@1", RooArgList(nsig1,f2));
+  RooFormulaVar nsig3("nsig3", "@0*(@1-@2)", RooArgList(nsig1, f23, f2));
 
-  RooFormulaVar nsig2("nsig2", "@0*@1/(1+@2)", RooArgList(nsig1, f23, f2));
-  RooFormulaVar nsig3("nsig3", "@0*@1*@2/(1+@2)", RooArgList(nsig1, f23, f2));
+  // RooFormulaVar nsig2("nsig2", "@0*@1/(1+@2)", RooArgList(nsig1, f23, f2));
+  // RooFormulaVar nsig3("nsig3", "@0*@1*@2/(1+@2)", RooArgList(nsig1, f23, f2));
 
   RooExtendPdf sig1SN("sig1SN", "sig1SN", sig1SN, nsig1);
   RooExtendPdf sig2SN("sig2SN", "sig2SN", sig2SN, nsig2);
@@ -85,17 +86,41 @@ bool buildPdf(RooWorkspace &ws) {
   return ws.import(pdf, RooFit::RecycleConflictNodes(), RooFit::Silence());
 }
 
-void buildSimPdf(RooWorkspace &ws, RooCategory const &dataCat) {
+RooSimultaneous* buildSimPdf(RooWorkspace &ws, RooCategory const &dataCat) {
 
   if (!ws.pdf("pdf") && buildPdf(ws)) {
     std::cout << "cannot get pdf.\n";
+    return 0;
   }
 
   RooSimWSTool simTool(ws);
-  simTool.build("simPdf", "pdf", RooFit::SplitParam("f23", dataCat.GetName()),
-		RooFit::SplitParam("f23,f2,nsig1,nbkg", dataCat.GetName()),
-		RooFit::SplitParam("bkg_a1,bkg_a2", dataCat.GetName()));
+  return simTool.build("simPdf", "pdf", 
+		RooFit::SplitParam("f23,f2,nsig1", dataCat.GetName()),
+		RooFit::SplitParam("bkg_a1,bkg_a2,nbkg", dataCat.GetName()));
 
+}
+
+RooSimultaneous*  buildNullPdf(RooWorkspace &ws, RooCategory const &dataCat) {
+  if (!ws.pdf("pdf") && buildPdf(ws)) {
+    std::cout << "cannot get pdf.\n";
+    return 0;
+  }
+
+  RooSimPdfBuilder sb(RooArgSet(*(ws.pdf("pdf"))));
+  RooArgSet * config = sb.createProtoBuildConfig();
+  config->setStringValue("physModels", "pdf");
+  config->setStringValue("splitCats", dataCat.GetName());
+  config->setStringValue("pdf", TString(dataCat.GetName()) + " : f2,nsig1,nbkg,bkg_a1,bkg_a2");
+
+  RooArgSet deps(*(ws.var("invariantMass")),dataCat);
+
+  RooSimultaneous * sim = sb.buildPdf(*config, deps);
+  sim->SetName("simNullPdf");
+
+  ws.import(*sim, RooFit::RenameConflictNodes("null"),
+	    RooFit::RenameAllVariablesExcept("null", "invariantMass,dataCat"));
+
+  return (RooSimultaneous *)ws.pdf("simNullPdf");
 }
 
 bool readData(RooWorkspace &ws, TString HIfilename, TString ppFilename,
