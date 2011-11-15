@@ -1,25 +1,28 @@
 void theoryPlot1S(){
 
-  double norm = 0.25;
+  double norm = 0.25; 
 
-  //gROOT->SetStyle("Plain");
+  gROOT->SetStyle("Plain");
 
-  gROOT->LoadMacro("../xsection/setTDRStyle_modified.C");
-  setTDRStyle();
-  gStyle->SetFillColor(1);
+  //gROOT->LoadMacro("../xsection/setTDRStyle_modified.C");
+  //setTDRStyle();
   TString ytitle = TString::Format("d^{2}#sigma/dp_{T}dy #times #Beta(#mu#mu)  (nb/(GeV/c))");
 
   enum enuth {_data=0,_pythia,_cem,_cascade};
   int grcolor[4] = {1,4, 2,8};
   for(int i=0;i<4;i++) grcolor[i]=1; //remove color
 
-  //TFile cmsFile("xsection_1s_rap_0_2.root"); //3pb
-  TFile cmsFile("xsection_1s_y0_40.root");     //40pb
+  bool sample = 1; //40pb
+  //bool sample = 0; //3pb
+
+  if  (sample == 1) TFile cmsFile("xsection_1s_y0_40.root");     //40pb
+  else TFile cmsFile("xsection_1s_rap_0_2.root"); //3pb
+
   TGraphAsymmErrors* cmsdata = ((TMultiGraph*)cmsFile.Get("mg1"))->GetListOfGraphs()->At(1);
   //TGraphAsymmErrors* cmsdata1 = ((TMultiGraph*)cmsFile.Get("mg1"))->GetListOfGraphs()->At(1);
 
   TCanvas *c2 = new TCanvas();//"c1","title",800,600);
-  TH1F *frame = gPad->DrawFrame(0,0.00002,50,1);
+  TH1F *frame = gPad->DrawFrame(0,0.0002,30,1);
   //TH2F * frame = new TH2F("frame","", 1000,0.,30., 0, 0.001,10);
   frame->SetStats(0);
 
@@ -43,7 +46,7 @@ void theoryPlot1S(){
   //hist1->SetLineColor(4);
   //  hist1->Draw();
 
-///////////////////////////////////////////////
+  ///////////////////////////////////////////////
   ////// Color octet Pierre
   ///////////////////////////////////////////////
   /*
@@ -123,6 +126,7 @@ void theoryPlot1S(){
   //gg->SetLineWidth(2);
   //gg->SetLineColor(8);
 */
+
   ////////////////////////
   /// CEM
   ////////////////////////
@@ -166,6 +170,53 @@ void theoryPlot1S(){
   TGraphErrors* nrqcd = new TGraphErrors(45, pt_nrqcd, xsecMean, pt_nrqcdErr, xsecErr);
 
 
+  ////////////////////////
+  /// CMS
+  ////////////////////////
+
+  float scale=1.0/0.5; //the feed down fraction factor
+
+  float Nlo_pt[8]={3,5,10,15,20,25,30,35};
+  float Nlo_pt_err[8]={0,0,0,0,0,0,0,0};
+  float Nlo_high[8];
+  float Nlo_low[8];
+  float Nlo_high1[8]={0.16,0.095,0.011,0.0015,0.0003,0.00006,0.00002,0.000006};
+  float Nlo_low1[8] ={0.065,0.04,0.005,0.00075,0.00013,0.00003,0.00001,0.0000035};
+  float Nlo_high0[8]={0.18,0.11, 0.013,0.0018,0.00036,0.000075,0.000025,0.000008};
+  float Nlo_low0[8] ={0.07,0.043,0.006,0.001, 0.0002, 0.000045,0.000015,0.000005};
+  float Nlo_mean[8];
+  float Nlo_error[8];
+  for (int i=0; i<8; i++){
+	Nlo_high[i]=(Nlo_high0[i]+Nlo_high1[i])/2.0;
+	Nlo_low[i]=(Nlo_low0[i]+Nlo_low1[i])/2.0;
+    Nlo_mean[i]=(Nlo_high[i]+Nlo_low[i])/2.0;
+    Nlo_error[i]=(Nlo_high[i]-Nlo_low[i])/2.0;
+    Nlo_mean[i]=Nlo_mean[i]*scale;
+    Nlo_error[i]=Nlo_error[i]*scale;
+  }
+  TGraphErrors* NLO = new TGraphErrors(8,Nlo_pt,Nlo_mean,Nlo_pt_err,Nlo_error);
+
+  float NNlo_pt[7]={5,10,15,20,25,30,35};
+  float NNlo_pt_err[7]={0,0,0,0,0,0,0};
+  float NNlo_high[8];
+  float NNlo_low[8];
+  float NNlo_high1[7]={0.24,0.048,0.0089,0.0022,0.00058,0.00018,0.000062};
+  float NNlo_low1[7] ={0.042,0.006,0.0012,0.00026,0.00007,0.000026,0.0000097};
+  float NNlo_high0[7]={0.27, 0.056, 0.01,  0.0026, 0.0007,  0.00021, 0.000076};
+  float NNlo_low0[7] ={0.045,0.0072,0.0015,0.00036,0.000093,0.000035,0.000012};
+  float NNlo_mean[7];
+  float NNlo_error[7];
+  for (int i=0; i<7; i++){
+    NNlo_high[i]=(NNlo_high0[i]+NNlo_high1[i])/2.0;
+    NNlo_low[i]=(NNlo_low0[i]+NNlo_low1[i])/2.0;
+    NNlo_mean[i]=(NNlo_high[i]+NNlo_low[i])/2.0;
+    NNlo_error[i]=(NNlo_high[i]-NNlo_low[i])/2.0;
+    NNlo_mean[i]=NNlo_mean[i]*scale;
+    NNlo_error[i]=NNlo_error[i]*scale;
+  }
+  TGraphErrors* NNLO = new TGraphErrors(7,NNlo_pt,NNlo_mean,NNlo_pt_err,NNlo_error);
+
+
   ////////////////////////////
   /// NOW ALL TOGETHER!
   ////////////////////////////
@@ -198,59 +249,72 @@ void theoryPlot1S(){
   hist1->SetLineWidth(2);
   hist1->SetLineStyle(1);
 
+  NLO->SetFillColor(kGreen);
+  NLO->SetFillStyle(3144);
+  NLO->SetLineColor(kGreen);
+
+  NNLO->SetFillColor(6);
+  NNLO->SetFillStyle(3244);
+  NNLO->SetLineColor(6);
+
   //normalize
   histcascade_dir   ->Scale(norm);
   hist1  ->Scale(norm);
   histcem->Scale(norm);
-  normalize(cmsdata,1.0/2.4);
+  if (sample == 1) normalize(cmsdata,1.0/2.4);  // 40pb
+  else normalize(cmsdata,1.0/4.0);
 
   ///// pierre
   //gr->Draw("E4");
   ///// NRQCD
   nrqcd->Draw("3");
+  NLO->Draw("same 3");
+  NNLO->Draw("same 3");
   ///// cascade 
-  //histcascade_dir->Draw("same HIST ");
+  histcascade_dir->Draw("same HIST ");
   ///// cem
-  //histcem->Draw("sameL");
+  histcem->Draw("same L");
   //// /pyt
   hist1->Draw("same HIST c");
-  cmsdata->Draw("P");
+  cmsdata->Draw("Psame");
   //cmsdata1->Draw("Psame");
 
   TLatex latex;
   //latex.DrawLatex(21,0.05,"|y^{#Upsilon}|<2");
 
   TLatex latex2;
-  latex2.DrawLatex(2,0.0003,"#Upsilon(1S)");
+  latex2.DrawLatex(2,0.003,"#Upsilon(1S)");
 
   TLatex latex3;
-  latex3.DrawLatex(2,0.0001 , "#sqrt{s}=7 TeV, L= 39 pb^{-1}");
+  if (sample == 1) latex3.DrawLatex(2,0.001 , "#sqrt{s}=7 TeV, L= 39 pb^{-1}");
+  else latex3.DrawLatex(2,0.001 , "#sqrt{s}=7 TeV, L= 3 pb^{-1}");
 
-  TLegend *leg = new TLegend(0.65,0.65,0.9,0.9);
+  TLegend *leg = new TLegend(0.6,0.6,0.9,0.9);
   //leg->SetBorderSize(0);
   //leg->SetFillColor(10);
 
   leg->AddEntry(cmsdata, "CMS data", "PML");
-  
   //leg->AddEntry(gr, "Direct #Upsilon, LO NRQCD, Artoisenet", "FL");
   leg->AddEntry(nrqcd, "NRQCD", "F");
+  leg->AddEntry(NLO, "NLO", "F");
+  leg->AddEntry(NNLO, "NNLO*", "F");
   leg->AddEntry(hist1,"PYTHIA", "L");
-  //leg->AddEntry(histcem, "CEM", "L");
-  //leg->AddEntry(histcascade_dir, "CASCADE", "L");
+  leg->AddEntry(histcem, "CEM", "L");
+  leg->AddEntry(histcascade_dir, "CASCADE", "L");
   leg->Draw();
 
-  c2->Print("theoryPlot1S.gif");
-  c2->Print("theoryPlot1S.eps");
-  c2->Print("theoryPlot1S.pdf");
-  c2->SaveAs("theoryPlot1S.root");
+  //c2->Print("theoryPlot1S.gif");
+  //c2->Print("theoryPlot1S.eps");
+  //c2->Print("theoryPlot1S.pdf");
+  //c2->SaveAs("theoryPlot1S.root");
 
   hist1->Scale(7.37/15.17);
   hist1->Draw("same HIST c");
   c2->Print("theoryPlot1Sscaled.gif");
-  c2->Print("theoryPlot1Sscaled.eps");
+  //c2->Print("theoryPlot1Sscaled.eps");
   c2->Print("theoryPlot1Sscaled.pdf");
-  c2->SaveAs("theoryPlot1Sscaled.root");
-
+  //c2->SaveAs("theoryPlot1Sscaled.root");
+/*
   for(int i=0; i<cmsdata->GetN(); i++){
     cmsdata->GetEXhigh()[i+1] = 0;//genPtLargeBins->GetEXhigh()[i];
     cmsdata->GetEXlow()[i+1] = 0;// genPtLargeBins->GetEXlow()[i];
@@ -266,9 +330,9 @@ void theoryPlot1S(){
   latex2.DrawLatex(2,0.0015,"#Upsilon(1S)");
   latex3.DrawLatex(2,0.0004 , "#sqrt{s} = 7 TeV, L = 39 pb^{ -1}");
   c2->Print("theoryPlot1S_nrqcd.gif");
-  c2->Print("theoryPlot1S_nrqcd.eps");
+  //c2->Print("theoryPlot1S_nrqcd.eps");
   c2->Print("theoryPlot1S_nrqcd.pdf");
-  c2->SaveAs("theoryPlot1S_nrqcd.root");
+  //c2->SaveAs("theoryPlot1S_nrqcd.root");
 
   for(int i=0; i<cmsdata->GetN(); i++){
     cmsdata->GetEXhigh()[i+1] = 0;//genPtLargeBins->GetEXhigh()[i];
@@ -285,7 +349,7 @@ void theoryPlot1S(){
   latex2.DrawLatex(2,0.0015,"#Upsilon(1S)");
   latex3.DrawLatex(2,0.0004 , "#sqrt{s} = 7 TeV, L = 39 pb^{ -1}");
   c2->Print("theoryPlot1S_cascade.gif");
-  c2->Print("theoryPlot1S_cascade.eps");
+  //c2->Print("theoryPlot1S_cascade.eps");
   c2->Print("theoryPlot1S_cascade.pdf");
 
   for(int i=0; i<cmsdata->GetN(); i++){
@@ -303,7 +367,7 @@ void theoryPlot1S(){
   latex2.DrawLatex(2,0.0015,"#Upsilon(1S)");
   latex3.DrawLatex(2,0.0004 , "#sqrt{s} = 7 TeV, L = 39 pb^{ -1}");
   c2->Print("theoryPlot1S_CEM.gif");
-  c2->Print("theoryPlot1S_CEM.eps");
+  //c2->Print("theoryPlot1S_CEM.eps");
   c2->Print("theoryPlot1S_CEM.pdf");
 
   for(int i=0; i<cmsdata->GetN(); i++){
@@ -326,11 +390,11 @@ void theoryPlot1S(){
   latex2.DrawLatex(2,0.0015,"#Upsilon(1S)");
   latex3.DrawLatex(2,0.0004 , "#sqrt{s} = 7 TeV, L = 39 pb^{ -1}");
   c2->Print("theoryPlot1Sbinned.gif");
-  c2->Print("theoryPlot1Sbinned.eps");
+  //c2->Print("theoryPlot1Sbinned.eps");
   c2->Print("theoryPlot1Sbinned.pdf");
   hist1->Draw("same HIST c");
   c2->Print("theoryPlot1Scombined.gif");
-  c2->Print("theoryPlot1Scombined.eps");
+  //c2->Print("theoryPlot1Scombined.eps");
   c2->Print("theoryPlot1Scombined.pdf");
 
   for(int i=0; i<cmsdata->GetN(); i++){
@@ -349,9 +413,9 @@ void theoryPlot1S(){
   latex2.DrawLatex(2,0.0015,"#Upsilon(1S)");
   latex3.DrawLatex(2,0.0004 , "#sqrt{s} = 7 TeV, L = 39 pb^{ -1}");
   c2->Print("theoryPlot1Sxpos.gif");
-  c2->Print("theoryPlot1Sxpos.eps");
+  //c2->Print("theoryPlot1Sxpos.eps");
   c2->Print("theoryPlot1Sxpos.pdf");
-
+*/
 }
 
 
