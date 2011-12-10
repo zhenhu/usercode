@@ -43,7 +43,9 @@ double binw_ = 0.1;//bin width of the histogram
 double width_ = 0.092; //0.0832; //new resolution for 2011 HI data, but we are using floating resolution for the minbias 2011 sample
 bool plotpars = 1;//false;
 bool doMinos = 1; //kFALSE;
-bool PbPb = 1;    //1: PbPb data;  0:pp data
+bool PbPb = 1;    //1: PbPb data;  0: pp data
+bool bkgdModel =1;//Background Model.  1: Error function;  0: RooKeysPdf 
+
 RooRealVar *f2Svs1S_pp = new RooRealVar("N_{3S}/N_{1S}pp","Y(3S)/Y(1S) yields pp ratio",0.49165,-1,5);
 RooRealVar *f3Svs1S_pp = new RooRealVar("N_{2S}/N_{1S}pp","Y(2S)/Y(1S) yields pp ratio",0.32202,-1,5);
 ofstream outfile("fitresults.out", ios_base::app);
@@ -92,7 +94,7 @@ void fitUpsilonYields(){
 	}
 
 	//different binning:
-	fitpeaks(0);
+		fitpeaks(0);
 	//	fitpeaks(1);
 	//	fitpeaks(2);
 	//	fitpeaks(3);
@@ -107,7 +109,7 @@ void fitUpsilonYields(){
 	//	fitpeaks(12);
 	//	fitpeaks(13);
 	//	fitpeaks(14);
-	//	fitpeaks(15);
+		fitpeaks(15);
 	//	fitpeaks(16);
 	//	fitpeaks(17);
 }
@@ -377,28 +379,40 @@ void fitUpsilonYields(){
 
 		if(PbPb){
 		//like-sign muon pairs' mass distribution
-		RooKeysPdf *LikeSignPdf = new RooKeysPdf("Like-sign","likesign",*mass,*likesignData,3,1.2);
-		RooRealVar *nLikesignbkgd = new RooRealVar("NLikesign_{bkg}","nlikesignbkgd",nt*0.75,0,10*nt);
-		nLikesignbkgd->setVal(likesignData->sumEntries());
-		nLikesignbkgd->setConstant(kTRUE);
-		RooFormulaVar *nResidualbkgd = new RooFormulaVar("NResidual_{bkg}","@0-@1",RooArgList(*nbkgd,*nLikesignbkgd));
-		RooAbsPdf  *pdf_combinedbkgd   = new RooAddPdf ("pdf_combinedbkgd","total combined background pdf",
+			if (bkgdModel == 1){
+			RooRealVar par0("par0","par0",350,0.,700.) ;
+			RooRealVar m0shift("m0shift","m0shift",6,0.,12.) ;
+			RooRealVar width("width","width",5,0.,10.) ;
+			RooRealVar par3("par3","par3",6,0.,12.) ;
+			RooGenericPdf *LikeSignPdf = new  RooGenericPdf("Like-sign","likesign","par0*exp(-@0/par3)*(TMath::Erf((@0-m0shift)/width)+1)",RooArgList(*mass,par0,m0shift,width,par3));
+    		LikeSignPdf.fitTo(*likesignData) ;
+			par0.setConstant(kTRUE);
+			m0shift.setConstant(kTRUE);
+			width.setConstant(kTRUE);
+			par3.setConstant(kTRUE);
+			}
+			else RooKeysPdf *LikeSignPdf = new RooKeysPdf("Like-sign","likesign",*mass,*likesignData,3,1.3);
+
+			RooRealVar *nLikesignbkgd = new RooRealVar("NLikesign_{bkg}","nlikesignbkgd",nt*0.75,0,10*nt);
+			nLikesignbkgd->setVal(likesignData->sumEntries());
+			nLikesignbkgd->setConstant(kTRUE);
+			RooFormulaVar *nResidualbkgd = new RooFormulaVar("NResidual_{bkg}","@0-@1",RooArgList(*nbkgd,*nLikesignbkgd));
+			RooAbsPdf  *pdf_combinedbkgd   = new RooAddPdf ("pdf_combinedbkgd","total combined background pdf",
 				RooArgList(*bkgPdf,*LikeSignPdf),
 				RooArgList(*nResidualbkgd,*nLikesignbkgd));
-
-		//default pdf
-		RooAbsPdf  *pdf   = new RooAddPdf ("pdf","total signal+background pdf",
+			//default pdf
+			RooAbsPdf  *pdf   = new RooAddPdf ("pdf","total signal+background pdf",
 				RooArgList(*gauss1S2,*sig2S,*sig3S,*pdf_combinedbkgd),
 				RooArgList(*nsig1f,*nsig2f,*nsig3f,*nbkgd));
 
-		//pdf with fixed ratio of the pp ratio
-		RooAbsPdf  *pdf_pp   = new RooAddPdf ("pdf_pp","total signal+background pdf",
+			//pdf with fixed ratio of the pp ratio
+			RooAbsPdf  *pdf_pp   = new RooAddPdf ("pdf_pp","total signal+background pdf",
 				RooArgList(*gauss1S2,*sig2S,*sig3S,*pdf_combinedbkgd),
 				RooArgList(*nsig1f,*nsig2f_,*nsig3f_,*nbkgd));
 		}
 		else{
 		//default pdf
-		RooAbsPdf  *pdf   = new RooAddPdf ("pdf","total signal+background pdf",
+			RooAbsPdf  *pdf   = new RooAddPdf ("pdf","total signal+background pdf",
 				RooArgList(*gauss1S2,*sig2S,*sig3S,*bkgPdf),
 				RooArgList(*nsig1f,*nsig2f,*nsig3f,*nbkgd));
 		}
