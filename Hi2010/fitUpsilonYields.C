@@ -39,11 +39,11 @@ double mass_h = 14.0;
 #define mmax_ mass_h
 #define fmin_ mass_l
 #define fmax_ mass_h
-double binw_ = 0.1;
+double binw_ = 0.1;//bin width of the histogram
 double width_ = 0.092; //0.0832; //new resolution for 2011 HI data, but we are using floating resolution for the minbias 2011 sample
 bool plotpars = 1;//false;
-bool doMinos = 1;//kFALSE;
-bool PbPb = 1;
+bool doMinos = 1; //kFALSE;
+bool PbPb = 1;    //1: PbPb data;  0:pp data
 RooRealVar *f2Svs1S_pp = new RooRealVar("N_{3S}/N_{1S}pp","Y(3S)/Y(1S) yields pp ratio",0.49165,-1,5);
 RooRealVar *f3Svs1S_pp = new RooRealVar("N_{2S}/N_{1S}pp","Y(2S)/Y(1S) yields pp ratio",0.32202,-1,5);
 ofstream outfile("fitresults.out", ios_base::app);
@@ -213,40 +213,40 @@ void fitUpsilonYields(){
 		ofstream outfile("fitresults.out", ios_base::app);
 		outfile<<endl<<"**********"<<suffix_<<"**********"<<endl<<endl;
 
-        //read the data
-        TFile f(finput,"read");
-        gDirectory->Cd(finput+":/"+dirname_);
-        TTree* theTree     = (TTree*)gROOT->FindObject("UpsilonTree");
-        TTree* allsignTree     = (TTree*)gROOT->FindObject("UpsilonTree_allsign");
+		//read the data
+		TFile f(finput,"read");
+		gDirectory->Cd(finput+":/"+dirname_);
+		TTree* theTree     = (TTree*)gROOT->FindObject("UpsilonTree");
+		TTree* allsignTree     = (TTree*)gROOT->FindObject("UpsilonTree_allsign");
 
-        RooRealVar* mass  = new RooRealVar("invariantMass","#mu#mu mass",mmin_,mmax_,"GeV/c^{2}");
+		RooRealVar* mass  = new RooRealVar("invariantMass","#mu#mu mass",mmin_,mmax_,"GeV/c^{2}");
 		RooRealVar* upsPt  = new RooRealVar("upsPt","p_{T}(#Upsilon)",0,60,"GeV");
-        RooRealVar* upsEta = new RooRealVar("upsEta",  "upsEta"  ,-7,7);
-        RooRealVar* upsRapidity = new RooRealVar("upsRapidity",  "upsRapidity"  ,-2.4,2.4);
-        RooRealVar* vProb = new RooRealVar("vProb",  "vProb"  ,0,1);
-        RooRealVar* QQsign = new RooRealVar("QQsign",  "QQsign"  ,-1,5);
-        RooRealVar* weight = new RooRealVar("weight",  "weight"  ,-2,2);
-        if (PbPb) RooRealVar* Centrality = new RooRealVar("Centrality",  "Centrality"  ,0,40);
-        RooRealVar* muPlusPt = new RooRealVar("muPlusPt","muPlusPt",0,50);
-        RooRealVar* muPlusEta = new RooRealVar("muPlusEta","muPlusEta",-2.5,2.5);
-        RooRealVar* muMinusPt = new RooRealVar("muMinusPt","muMinusPt",0,50);
-        RooRealVar* muMinusEta = new RooRealVar("muMinusEta","muMinusEta",-2.5,2.5);
+		RooRealVar* upsEta = new RooRealVar("upsEta",  "upsEta"  ,-7,7);
+		RooRealVar* upsRapidity = new RooRealVar("upsRapidity",  "upsRapidity"  ,-2.4,2.4);
+		RooRealVar* vProb = new RooRealVar("vProb",  "vProb"  ,0,1);
+		RooRealVar* QQsign = new RooRealVar("QQsign",  "QQsign"  ,-1,5);
+		RooRealVar* weight = new RooRealVar("weight",  "weight"  ,-2,2);
+		if (PbPb) RooRealVar* Centrality = new RooRealVar("Centrality",  "Centrality"  ,0,40);
+		RooRealVar* muPlusPt = new RooRealVar("muPlusPt","muPlusPt",0,50);
+		RooRealVar* muPlusEta = new RooRealVar("muPlusEta","muPlusEta",-2.5,2.5);
+		RooRealVar* muMinusPt = new RooRealVar("muMinusPt","muMinusPt",0,50);
+		RooRealVar* muMinusEta = new RooRealVar("muMinusEta","muMinusEta",-2.5,2.5);
         
 		//import unlike-sign data set
 		RooDataSet* data0, *data, *likesignData0, *likesignData;
-        if (PbPb) data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*vProb,*upsPt,*Centrality,*muPlusPt,*muMinusPt));
-        //data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*upsPt,*muPlusPt,*muMinusPt,*QQsign,*weight));
-        else data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*upsPt,*muPlusPt,*muMinusPt,*muPlusEta,*muMinusEta));
-        data0->Print();
-        data = ( RooDataSet*) data0->reduce(Cut(cut_));
-        data->Print();
+		if (PbPb) data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*vProb,*upsPt,*Centrality,*muPlusPt,*muMinusPt));
+		//data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*upsPt,*muPlusPt,*muMinusPt,*QQsign,*weight));
+		else data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*upsPt,*muPlusPt,*muMinusPt,*muPlusEta,*muMinusEta));
+		data0->Print();
+		data = ( RooDataSet*) data0->reduce(Cut(cut_));
+		data->Print();
 
 		//import like-sign data set
 		if (PbPb) {
-        likesignData0 = new RooDataSet("likesignData","likesignData",allsignTree,RooArgSet(*mass,*upsRapidity,*vProb,*upsPt,*Centrality,*muPlusPt,*muMinusPt,*QQsign));
-        likesignData0->Print();
-        likesignData = ( RooDataSet*) likesignData0->reduce(Cut(cut_+" && QQsign != 0"));
-        likesignData->Print();
+			likesignData0 = new RooDataSet("likesignData","likesignData",allsignTree,RooArgSet(*mass,*upsRapidity,*vProb,*upsPt,*Centrality,*muPlusPt,*muMinusPt,*QQsign));
+			likesignData0->Print();
+			likesignData = ( RooDataSet*) likesignData0->reduce(Cut(cut_+" && QQsign != 0"));
+			likesignData->Print();
 		}
 
 		RooRealVar* mass  = new RooRealVar("invariantMass","#mu#mu mass",mmin_,mmax_,"GeV/c^{2}");
@@ -335,10 +335,10 @@ void fitUpsilonYields(){
 		RooRealVar *SB_bkg_a2  = new RooRealVar("SB bkg_{a2}", "background a2", 0, -1, 1);
 		RooAbsPdf  *SB_bkgPdf  = new RooPolynomial("SB_bkg","side-band background",
 				*mass, RooArgList(*SB_bkg_a1,*SB_bkg_a2));
-        //SB_bkg_a1->setVal(0);
-        //SB_bkg_a1->setConstant(kTRUE);
-        SB_bkg_a2->setVal(0);
-        SB_bkg_a2->setConstant(kTRUE);
+		//SB_bkg_a1->setVal(0);
+		//SB_bkg_a1->setConstant(kTRUE);
+		SB_bkg_a2->setVal(0);
+		SB_bkg_a2->setConstant(kTRUE);
 
 
 		/// Combined pdf
@@ -376,11 +376,11 @@ void fitUpsilonYields(){
 				RooArgList(*nsig1f,*nsig2f,*nsig3f,*SB_nbkgd));
 
 		if(PbPb){
-        //like-sign muon pairs' mass distribution
-        RooKeysPdf *LikeSignPdf = new RooKeysPdf("Like-sign","likesign",*mass,*likesignData,3,1.2);
+		//like-sign muon pairs' mass distribution
+		RooKeysPdf *LikeSignPdf = new RooKeysPdf("Like-sign","likesign",*mass,*likesignData,3,1.2);
 		RooRealVar *nLikesignbkgd = new RooRealVar("NLikesign_{bkg}","nlikesignbkgd",nt*0.75,0,10*nt);
 		nLikesignbkgd->setVal(likesignData->sumEntries());
-        nLikesignbkgd->setConstant(kTRUE);
+		nLikesignbkgd->setConstant(kTRUE);
 		RooFormulaVar *nResidualbkgd = new RooFormulaVar("NResidual_{bkg}","@0-@1",RooArgList(*nbkgd,*nLikesignbkgd));
 		RooAbsPdf  *pdf_combinedbkgd   = new RooAddPdf ("pdf_combinedbkgd","total combined background pdf",
 				RooArgList(*bkgPdf,*LikeSignPdf),
@@ -391,16 +391,16 @@ void fitUpsilonYields(){
 				RooArgList(*gauss1S2,*sig2S,*sig3S,*pdf_combinedbkgd),
 				RooArgList(*nsig1f,*nsig2f,*nsig3f,*nbkgd));
 
-        //pdf with fixed ratio of the pp ratio
-        RooAbsPdf  *pdf_pp   = new RooAddPdf ("pdf_pp","total signal+background pdf",
-                RooArgList(*gauss1S2,*sig2S,*sig3S,*pdf_combinedbkgd),
-                RooArgList(*nsig1f,*nsig2f_,*nsig3f_,*nbkgd));
+		//pdf with fixed ratio of the pp ratio
+		RooAbsPdf  *pdf_pp   = new RooAddPdf ("pdf_pp","total signal+background pdf",
+				RooArgList(*gauss1S2,*sig2S,*sig3S,*pdf_combinedbkgd),
+				RooArgList(*nsig1f,*nsig2f_,*nsig3f_,*nbkgd));
 		}
 		else{
-        //default pdf
-        RooAbsPdf  *pdf   = new RooAddPdf ("pdf","total signal+background pdf",
-                RooArgList(*gauss1S2,*sig2S,*sig3S,*bkgPdf),
-                RooArgList(*nsig1f,*nsig2f,*nsig3f,*nbkgd));
+		//default pdf
+		RooAbsPdf  *pdf   = new RooAddPdf ("pdf","total signal+background pdf",
+				RooArgList(*gauss1S2,*sig2S,*sig3S,*bkgPdf),
+				RooArgList(*nsig1f,*nsig2f,*nsig3f,*nbkgd));
 		}
 
 		//plot
@@ -416,21 +416,21 @@ void fitUpsilonYields(){
 		pdf->plotOn(frame,Name("thePdf"));
 		pdf->plotOn(frame,Components("bkg"),Name("theBkg"),LineStyle(5),LineColor(kGreen));
 		if(PbPb){
-		pdf->plotOn(frame,Components("Like-sign"),Name("theLikeSign"),LineStyle(9),LineColor(kRed));
-		pdf->plotOn(frame,Components("pdf_combinedbkgd"),LineStyle(kDashed));
+			pdf->plotOn(frame,Components("Like-sign"),Name("theLikeSign"),LineStyle(9),LineColor(kRed));
+			pdf->plotOn(frame,Components("pdf_combinedbkgd"),LineStyle(kDashed));
 		}
-        RooArgSet * pars = pdf->getParameters(data);
+		RooArgSet * pars = pdf->getParameters(data);
 
-        //calculate chi2 in a mass range
-        float bin_Min = (8.5-mmin_)/binw_;
-        float bin_Max = (11-mmin_)/binw_;
-        int binMin = ceil(bin_Min);
-        int binMax = ceil(bin_Max);
-        int nfloatpars = pars->selectByAttrib("Constant",kFALSE)->getSize();
-        //float myndof = frame->GetNbinsX() - nfloatpars;
-        float myndof = ceil((11-8.5)/binw_) - nfloatpars;
-        cout<<binMin<<" "<<binMax<<" "<<nfloatpars<<" "<<myndof<<endl;
-        double mychsq = frame->mychiSquare("thePdf","theData",nfloatpars,true,binMin,binMax)*myndof;
+		//calculate chi2 in a mass range
+		float bin_Min = (8.5-mmin_)/binw_;
+		float bin_Max = (11-mmin_)/binw_;
+		int binMin = ceil(bin_Min);
+		int binMax = ceil(bin_Max);
+		int nfloatpars = pars->selectByAttrib("Constant",kFALSE)->getSize();
+		//float myndof = frame->GetNbinsX() - nfloatpars;
+		float myndof = ceil((11-8.5)/binw_) - nfloatpars;
+		cout<<binMin<<" "<<binMax<<" "<<nfloatpars<<" "<<myndof<<endl;
+		double mychsq = frame->mychiSquare("thePdf","theData",nfloatpars,true,binMin,binMax)*myndof;
 
 //		int nfloatpars = pars->selectByAttrib("Constant",kFALSE)->getSize();
 //		float myndof = frame->GetNbinsX() - nfloatpars;
