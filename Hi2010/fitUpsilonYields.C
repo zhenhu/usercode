@@ -12,6 +12,7 @@
 #include "RooMCStudy.h"
 #include "RooFitResult.h"
 #include "RooWorkspace.h"
+#include "RooKeysPdf.h"
 
 #include "RooStats/ModelConfig.h"
 #include "RooStats/ProfileLikelihoodCalculator.h"
@@ -38,13 +39,13 @@ double mass_h = 14.0;
 #define mmax_ mass_h
 #define fmin_ mass_l
 #define fmax_ mass_h
-double binw_ = 0.14;
-double width_ = 0.092; //0.087;
+double binw_ = 0.1;
+double width_ = 0.092; //0.0832; //new resolution for 2011 HI data, but we are using floating resolution for the minbias 2011 sample
 bool plotpars = 1;//false;
 bool doMinos = 1;//kFALSE;
 bool PbPb = 1;
-RooRealVar *f2Svs1S_pp = new RooRealVar("N_{3S}/N_{1S}pp","Y(3S)/Y(1S) yields pp ratio",0.45455,-1,5);
-RooRealVar *f3Svs1S_pp = new RooRealVar("N_{2S}/N_{1S}pp","Y(2S)/Y(1S) yields pp ratio",0.32626,-1,5);
+RooRealVar *f2Svs1S_pp = new RooRealVar("N_{3S}/N_{1S}pp","Y(3S)/Y(1S) yields pp ratio",0.49165,-1,5);
+RooRealVar *f3Svs1S_pp = new RooRealVar("N_{2S}/N_{1S}pp","Y(2S)/Y(1S) yields pp ratio",0.32202,-1,5);
 ofstream outfile("fitresults.out", ios_base::app);
 
 TString finput;
@@ -80,7 +81,9 @@ void fitUpsilonYields(){
 	//setTDRStyle();
 
 	if (PbPb) {
-		finput = "MassTree_NewCuts_hi.root";
+		//finput = "MassTree_NewCuts_hi.root";
+		finput = "dimuonTree_2011.root";
+		//finput = "/home/zhenhu/HI2011/dimuonTree_181912-182395.root";
 		figName_ = "masspeak_Hi"; //output fig names
 	}
 	else {
@@ -113,37 +116,37 @@ void fitUpsilonYields(){
 		switch (bin)
 		{
 			case 0:
-				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && abs(upsRapidity)<2.4 && upsPt<20";  //hi acceptance for Upsilon
+				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && abs(upsRapidity)<2.4";// && upsPt<20";  //hi acceptance for Upsilon
 				//cut_="( (muPlusPt>3.5 && abs(muPlusEta)<1.6) || (muPlusPt>2.5 && abs(muPlusEta)>=1.6 && abs(muPlusEta)<2.4) ) && ( (muMinusPt>3.5 && abs(muMinusEta)<1.6) || (muMinusPt>2.5 && abs(muMinusEta)>=1.6 && abs(muMinusEta)<2.4) ) && abs(upsRapidity)<2.0";   //pp acceptance for Upsilon 
 				suffix_="";
-				f2Svs1S_pp->setVal(0.45455);
+				f2Svs1S_pp->setVal(0.49165);//0.45455);
 				//f2Svs1S_pp->setVal(0);
-				f3Svs1S_pp->setVal(0.32626);
+				f3Svs1S_pp->setVal(0.32202);//0.32626);
 				//f3Svs1S_pp->setVal(0);
 				break;
 			case 1:
-				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt<20 && abs(upsRapidity)>=0 && abs(upsRapidity)<1.2";
-				suffix_="_eta0-12"; binw_=0.2;
+				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && abs(upsRapidity)>=0 && abs(upsRapidity)<1.2";
+				suffix_="_eta0-12"; binw_=0.14;
 				break;
 			case 2:
-				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt<20 && abs(upsRapidity)>=1.2 && abs(upsRapidity)<2.4";
-				suffix_="_eta12-24"; binw_=0.2;
+				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && abs(upsRapidity)>=1.2 && abs(upsRapidity)<2.4";
+				suffix_="_eta12-24"; binw_=0.14;
 				break;
 			case 3:
-				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt<20 && Centrality>=0 && Centrality<4";
-				suffix_="_cntr0-10"; binw_=0.2;
+				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && Centrality>=0 && Centrality<4";
+				suffix_="_cntr0-10"; binw_=0.14;
 				break;
 			case 4:
-				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt<20 && Centrality>=4 && Centrality<8";
-				suffix_="_cntr10-20"; binw_=0.2;
+				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && Centrality>=4 && Centrality<8";
+				suffix_="_cntr10-20"; binw_=0.14;
 				break;
 			case 5:
-				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt<20 && Centrality>=8 && Centrality<50";
-				suffix_="_cntr20-100"; binw_=0.2;
+				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && Centrality>=8 && Centrality<20";
+				suffix_="_cntr20-50"; binw_=0.14;
 				break;
 			case 6:
-				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt>=0 && upsPt<6.5";
-				suffix_="_upsPt0-65"; binw_=0.2;
+				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && Centrality>=20 && Centrality<50";
+				suffix_="_cntr50-100"; binw_=0.14;
 				break;
 			case 7:
 				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && upsPt>=6.5 && upsPt<10";
@@ -174,26 +177,26 @@ void fitUpsilonYields(){
 				suffix_="_cntr10-100"; binw_=0.2;
 				break;
 			case 14:
-				cut_="muPlusPt > 3.0 && muMinusPt > 3.0 && abs(upsRapidity)<2.4 && upsPt<20"; 
-				suffix_="_MuonPT3"; binw_=0.14; 
+				cut_="muPlusPt > 3.0 && muMinusPt > 3.0 && abs(upsRapidity)<2.4 ";//&& upsPt<20"; 
+				suffix_="_MuonPT3"; binw_=0.1; 
 				f2Svs1S_pp->setVal(0.272881);
 				f3Svs1S_pp->setVal(0.215646);
 				break;
 			case 15:
-				cut_="muPlusPt > 3.5 && muMinusPt > 3.5 && abs(upsRapidity)<2.4 && upsPt<20"; 
-				suffix_="_MuonPT4_2"; binw_=0.14;
+				cut_="muPlusPt > 3.5 && muMinusPt > 3.5 && abs(upsRapidity)<2.4 ";//&& upsPt<20"; 
+				suffix_="_MuonPT35"; binw_=0.1;
 				f2Svs1S_pp->setVal(0.313659);
 				f3Svs1S_pp->setVal(0.230575);
 				break;
 			case 16:
-				cut_="muPlusPt > 4.5 && muMinusPt > 4.5 && abs(upsRapidity)<2.4 && upsPt<20"; 
-				suffix_="_MuonPT45"; binw_=0.14;
+				cut_="muPlusPt > 4.5 && muMinusPt > 4.5 && abs(upsRapidity)<2.4 ";//&& upsPt<20"; 
+				suffix_="_MuonPT45"; binw_=0.2;
 				f2Svs1S_pp->setVal(0.641356);
 				f3Svs1S_pp->setVal(0.509932);
 				break;
 			case 17:
-				cut_="muPlusPt > 5.0 && muMinusPt > 5.0 && abs(upsRapidity)<2.4 && upsPt<20";  
-				suffix_="_MuonPT5"; binw_=0.14;
+				cut_="muPlusPt > 5.0 && muMinusPt > 5.0 && abs(upsRapidity)<2.4 ";//&& upsPt<20";  
+				suffix_="_MuonPT5"; binw_=0.2;
 				f2Svs1S_pp->setVal(1.22348);
 				f3Svs1S_pp->setVal(0.560287);
 				break;
@@ -209,6 +212,42 @@ void fitUpsilonYields(){
 			<< endl;
 		ofstream outfile("fitresults.out", ios_base::app);
 		outfile<<endl<<"**********"<<suffix_<<"**********"<<endl<<endl;
+
+        //read the data
+        TFile f(finput,"read");
+        gDirectory->Cd(finput+":/"+dirname_);
+        TTree* theTree     = (TTree*)gROOT->FindObject("UpsilonTree");
+        TTree* allsignTree     = (TTree*)gROOT->FindObject("UpsilonTree_allsign");
+
+        RooRealVar* mass  = new RooRealVar("invariantMass","#mu#mu mass",mmin_,mmax_,"GeV/c^{2}");
+		RooRealVar* upsPt  = new RooRealVar("upsPt","p_{T}(#Upsilon)",0,60,"GeV");
+        RooRealVar* upsEta = new RooRealVar("upsEta",  "upsEta"  ,-7,7);
+        RooRealVar* upsRapidity = new RooRealVar("upsRapidity",  "upsRapidity"  ,-2.4,2.4);
+        RooRealVar* vProb = new RooRealVar("vProb",  "vProb"  ,0,1);
+        RooRealVar* QQsign = new RooRealVar("QQsign",  "QQsign"  ,-1,5);
+        RooRealVar* weight = new RooRealVar("weight",  "weight"  ,-2,2);
+        if (PbPb) RooRealVar* Centrality = new RooRealVar("Centrality",  "Centrality"  ,0,40);
+        RooRealVar* muPlusPt = new RooRealVar("muPlusPt","muPlusPt",0,50);
+        RooRealVar* muPlusEta = new RooRealVar("muPlusEta","muPlusEta",-2.5,2.5);
+        RooRealVar* muMinusPt = new RooRealVar("muMinusPt","muMinusPt",0,50);
+        RooRealVar* muMinusEta = new RooRealVar("muMinusEta","muMinusEta",-2.5,2.5);
+        
+		//import unlike-sign data set
+		RooDataSet* data0, *data, *likesignData0, *likesignData;
+        if (PbPb) data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*vProb,*upsPt,*Centrality,*muPlusPt,*muMinusPt));
+        //data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*upsPt,*muPlusPt,*muMinusPt,*QQsign,*weight));
+        else data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*upsPt,*muPlusPt,*muMinusPt,*muPlusEta,*muMinusEta));
+        data0->Print();
+        data = ( RooDataSet*) data0->reduce(Cut(cut_));
+        data->Print();
+
+		//import like-sign data set
+		if (PbPb) {
+        likesignData0 = new RooDataSet("likesignData","likesignData",allsignTree,RooArgSet(*mass,*upsRapidity,*vProb,*upsPt,*Centrality,*muPlusPt,*muMinusPt,*QQsign));
+        likesignData0->Print();
+        likesignData = ( RooDataSet*) likesignData0->reduce(Cut(cut_+" && QQsign != 0"));
+        likesignData->Print();
+		}
 
 		RooRealVar* mass  = new RooRealVar("invariantMass","#mu#mu mass",mmin_,mmax_,"GeV/c^{2}");
 		mass->setRange("R1",7.0,8.8);
@@ -232,17 +271,17 @@ void fitUpsilonYields(){
 				RooArgList(*mean,*mscale,*shift31));
 
 		RooRealVar *sigma1 = new RooRealVar("sigma","Sigma_1",0.10,0.01,0.30);    //detector resolution
-		RooRealVar *sigma2 = new RooRealVar("#sigma_{#Upsilon(1S)}","Sigma_1S",0.06,0.01,0.30); //Y(1S) resolution
+		RooRealVar *sigma2 = new RooRealVar("#sigma_{#Upsilon(1S)}","Sigma_1S",0.08,0.01,0.30); //Y(1S) resolution
 		RooFormulaVar *reso1S = new RooFormulaVar("reso1S","@0"             ,RooArgList(*sigma2));
 		RooFormulaVar *reso2S = new RooFormulaVar("reso2S","@0*10.023/9.460",RooArgList(*sigma2));
 		RooFormulaVar *reso3S = new RooFormulaVar("reso3S","@0*10.355/9.460",RooArgList(*sigma2));
 
 		/// to describe final state radiation tail on the left of the peaks
-		RooRealVar *alpha  = new RooRealVar("alpha","tail shift",1.6,0.2,4);
+		RooRealVar *alpha  = new RooRealVar("alpha","tail shift",1.0,0.2,4);   //1.6
 		//RooRealVar *alpha  = new RooRealVar("alpha","tail shift",1.7,0.2,4);
-		RooRealVar *npow   = new RooRealVar("npow","power order",2.3,1,3);
+		RooRealVar *npow   = new RooRealVar("npow","power order",2.3,1,3);     //2.3
 		npow ->setConstant(kTRUE);
-		alpha->setConstant(kTRUE);
+		//alpha->setConstant(kTRUE);
 
 		/// relative fraction of the two peak components 
 		RooRealVar *sigmaFraction = new RooRealVar("sigmaFraction","Sigma Fraction",0.3,0.,1.);
@@ -261,8 +300,8 @@ void fitUpsilonYields(){
 		//mean->setConstant(kTRUE);
 		sigma1->setVal(0);
 		sigma1->setConstant(kTRUE);
-		sigma2->setVal(width_);        //fix the resolution
-		sigma2->setConstant(kTRUE);
+		//sigma2->setVal(width_);        //fix the resolution
+		//sigma2->setConstant(kTRUE);
 
 		/// Upsilon 2S
 		RooCBShape  *gauss2S1 = new RooCBShape ("gauss2S1", "FSR cb 2s", 
@@ -283,6 +322,7 @@ void fitUpsilonYields(){
 		/// Background
 		RooRealVar *bkg_a1  = new RooRealVar("bkg_{a1}", "background a1", 0, -1, 1);
 		RooRealVar *bkg_a2  = new RooRealVar("bkg_{a2}", "background a2", 0, -1, 1);
+		//RooRealVar *bkg_a3  = new RooRealVar("bkg_{a3}", "background a3", 0, -1, 1);
 		RooAbsPdf  *bkgPdf  = new RooChebychev("bkg","background",
 				*mass, RooArgList(*bkg_a1,*bkg_a2));
 		//bkg_a1->setVal(0);
@@ -295,6 +335,11 @@ void fitUpsilonYields(){
 		RooRealVar *SB_bkg_a2  = new RooRealVar("SB bkg_{a2}", "background a2", 0, -1, 1);
 		RooAbsPdf  *SB_bkgPdf  = new RooPolynomial("SB_bkg","side-band background",
 				*mass, RooArgList(*SB_bkg_a1,*SB_bkg_a2));
+        //SB_bkg_a1->setVal(0);
+        //SB_bkg_a1->setConstant(kTRUE);
+        SB_bkg_a2->setVal(0);
+        SB_bkg_a2->setConstant(kTRUE);
+
 
 		/// Combined pdf
 		int nt = 100000;
@@ -330,82 +375,69 @@ void fitUpsilonYields(){
 				RooArgList(*gauss1S2,*sig2S,*sig3S,*SB_bkgPdf),
 				RooArgList(*nsig1f,*nsig2f,*nsig3f,*SB_nbkgd));
 
+		if(PbPb){
+        //like-sign muon pairs' mass distribution
+        RooKeysPdf *LikeSignPdf = new RooKeysPdf("Like-sign","likesign",*mass,*likesignData,3,1.2);
+		RooRealVar *nLikesignbkgd = new RooRealVar("NLikesign_{bkg}","nlikesignbkgd",nt*0.75,0,10*nt);
+		nLikesignbkgd->setVal(likesignData->sumEntries());
+        nLikesignbkgd->setConstant(kTRUE);
+		RooFormulaVar *nResidualbkgd = new RooFormulaVar("NResidual_{bkg}","@0-@1",RooArgList(*nbkgd,*nLikesignbkgd));
+		RooAbsPdf  *pdf_combinedbkgd   = new RooAddPdf ("pdf_combinedbkgd","total combined background pdf",
+				RooArgList(*bkgPdf,*LikeSignPdf),
+				RooArgList(*nResidualbkgd,*nLikesignbkgd));
+
 		//default pdf
 		RooAbsPdf  *pdf   = new RooAddPdf ("pdf","total signal+background pdf",
-				RooArgList(*gauss1S2,*sig2S,*sig3S,*bkgPdf),
+				RooArgList(*gauss1S2,*sig2S,*sig3S,*pdf_combinedbkgd),
 				RooArgList(*nsig1f,*nsig2f,*nsig3f,*nbkgd));
 
-		//pdf with fixed ratio of the pp ratio
-		RooAbsPdf  *pdf_pp   = new RooAddPdf ("pdf_pp","total signal+background pdf",
-				RooArgList(*gauss1S2,*sig2S,*sig3S,*bkgPdf),
-				RooArgList(*nsig1f,*nsig2f_,*nsig3f_,*nbkgd));
-
-		/*
-		/// Background pdf for the pre-fit with only Y(1S) peak 
-		RooRealVar *bkg_a1_pre  = new RooRealVar("bkg_a1_pre", "background a1", 0, -1, 1);
-		RooRealVar *bkg_a2_pre  = new RooRealVar("bkg_a2_pre", "background a2", 0, -1, 1);
-		RooAbsPdf  *bkgPdf_pre  = new RooChebychev("bkgPdf_pre","background",
-		 *mass, RooArgList(*bkg_a1_pre,*bkg_a2_pre));
-		//bkg_a2_pre->setVal(0);
-		//bkg_a2_pre->setConstant(kTRUE);
-		/// signl pdf for th pre-fit with only Y(1S) peak
-		RooRealVar *nsig_pre  = new RooRealVar("nsig_pre","signal 1 yield",nt*0.25,0,10*nt);
-		RooRealVar *nbkgd_pre = new RooRealVar("nbkgd_pre","brackground 1 yield",nt*0.75,0,10*nt);
-		RooAbsPdf  *pdf_pre = new RooAddPdf ("pdf_pre","1S signal+background pdf",
-		RooArgList(*gauss1S2,*bkgPdf_pre),
-		RooArgList(*nsig_pre,*nbkgd_pre));
-		 */
-
-		//read the data
-		TFile f(finput,"read");
-		gDirectory->Cd(finput+":/"+dirname_);
-		TTree* theTree     = (TTree*)gROOT->FindObject("UpsilonTree");
-		RooRealVar* upsPt  = new RooRealVar("upsPt","p_{T}(#Upsilon)",0,60,"GeV");
-		RooRealVar* upsEta = new RooRealVar("upsEta",  "upsEta"  ,-7,7);
-		RooRealVar* upsRapidity = new RooRealVar("upsRapidity",  "upsRapidity"  ,-2.4,2.4);
-		RooRealVar* vProb = new RooRealVar("vProb",  "vProb"  ,0,1);
-		RooRealVar* QQsign = new RooRealVar("QQsign",  "QQsign"  ,-1,5);
-		RooRealVar* weight = new RooRealVar("weight",  "weight"  ,-2,2);
-		if (PbPb) RooRealVar* Centrality = new RooRealVar("Centrality",  "Centrality"  ,0,40);
-		RooRealVar* muPlusPt = new RooRealVar("muPlusPt","muPlusPt",0,50);
-		RooRealVar* muPlusEta = new RooRealVar("muPlusEta","muPlusEta",-2.5,2.5);
-		RooRealVar* muMinusPt = new RooRealVar("muMinusPt","muMinusPt",0,50);
-		RooRealVar* muMinusEta = new RooRealVar("muMinusEta","muMinusEta",-2.5,2.5);
-
-		RooDataSet* data0, *data;
-		if (PbPb) data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*vProb,*upsPt,*Centrality,*muPlusPt,*muMinusPt));
-		//data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*upsPt,*muPlusPt,*muMinusPt,*QQsign,*weight));
-		else data0 = new RooDataSet("data","data",theTree,RooArgSet(*mass,*upsRapidity,*upsPt,*muPlusPt,*muMinusPt,*muPlusEta,*muMinusEta));
-		data0->Print();
-		data = ( RooDataSet*) data0->reduce(Cut(cut_));
-		data->Print();
-
-		//the pre-fit with only Y(1S) pdf
-		//RooFitResult* fit_1st = pdf_pre->fitTo(*data,Range("R1,R2"),Save(kTRUE));
-		//RooFitResult* fit_1st = pdf_pre->fitTo(*data,Save(kTRUE),Extended(kTRUE));
-		//mean->setConstant(kTRUE);
+        //pdf with fixed ratio of the pp ratio
+        RooAbsPdf  *pdf_pp   = new RooAddPdf ("pdf_pp","total signal+background pdf",
+                RooArgList(*gauss1S2,*sig2S,*sig3S,*pdf_combinedbkgd),
+                RooArgList(*nsig1f,*nsig2f_,*nsig3f_,*nbkgd));
+		}
+		else{
+        //default pdf
+        RooAbsPdf  *pdf   = new RooAddPdf ("pdf","total signal+background pdf",
+                RooArgList(*gauss1S2,*sig2S,*sig3S,*bkgPdf),
+                RooArgList(*nsig1f,*nsig2f,*nsig3f,*nbkgd));
+		}
 
 		//plot
 		TCanvas c; c.cd();
 		int nbins = ceil((mmax_-mmin_)/binw_); 
 		RooPlot* frame = mass->frame(Bins(nbins),Range(mmin_,mmax_));
+		if (PbPb) likesignData->plotOn(frame,Name("theLikeSignData"),MarkerSize(0.8),MarkerColor(kRed),MarkerStyle(24));
 		data->plotOn(frame,Name("theData"),MarkerSize(0.8));
-		//pdf_pre->plotOn(frame,LineColor(kRed));
-		//pdf_pre->plotOn(frame,Components(bkgPdf_pre),LineStyle(kDashed));
-		//if(plotpars) pdf_pre->paramOn(frame,Layout(0.65));
-
+		
 		//the nominal fit with default pdf 
 		RooFitResult* fit_2nd = pdf->fitTo(*data,Save(kTRUE),Extended(kTRUE),Minos(doMinos));
 		//plot
 		pdf->plotOn(frame,Name("thePdf"));
-		pdf->plotOn(frame,Components("bkg"),Name("theBkg"),LineStyle(kDashed));
-		RooArgSet * pars = pdf->getParameters(data);
-		int nfloatpars = pars->selectByAttrib("Constant",kFALSE)->getSize();
-		float myndof = frame->GetNbinsX() - nfloatpars;
-		double mychsq = frame->chiSquare("thePdf","theData",nfloatpars)*myndof;
+		pdf->plotOn(frame,Components("bkg"),Name("theBkg"),LineStyle(5),LineColor(kGreen));
+		if(PbPb){
+		pdf->plotOn(frame,Components("Like-sign"),Name("theLikeSign"),LineStyle(9),LineColor(kRed));
+		pdf->plotOn(frame,Components("pdf_combinedbkgd"),LineStyle(kDashed));
+		}
+        RooArgSet * pars = pdf->getParameters(data);
+
+        //calculate chi2 in a mass range
+        float bin_Min = (8.5-mmin_)/binw_;
+        float bin_Max = (11-mmin_)/binw_;
+        int binMin = ceil(bin_Min);
+        int binMax = ceil(bin_Max);
+        int nfloatpars = pars->selectByAttrib("Constant",kFALSE)->getSize();
+        //float myndof = frame->GetNbinsX() - nfloatpars;
+        float myndof = ceil((11-8.5)/binw_) - nfloatpars;
+        cout<<binMin<<" "<<binMax<<" "<<nfloatpars<<" "<<myndof<<endl;
+        double mychsq = frame->mychiSquare("thePdf","theData",nfloatpars,true,binMin,binMax)*myndof;
+
+//		int nfloatpars = pars->selectByAttrib("Constant",kFALSE)->getSize();
+//		float myndof = frame->GetNbinsX() - nfloatpars;
+//		double mychsq = frame->chiSquare("thePdf","theData",nfloatpars)*myndof;
 		if(plotpars) {
 			paramOn_ = "_paramOn";
-			pdf->paramOn(frame,Layout(0.5,0.9,0.95),Label(Form("#chi^{2}/ndf = %2.1f/%2.0f", mychsq,myndof)));
+			pdf->paramOn(frame,Layout(0.5,0.935,0.97),Label(Form("#chi^{2}/ndf = %2.1f/%2.0f", mychsq,myndof)));
 		}
 		else paramOn_ = "";
 
@@ -430,7 +462,7 @@ void fitUpsilonYields(){
 				TLatex latex2;
 				latex2.DrawLatex(10.2,50,"p_{T}^{#mu} > 4 GeV/c, |#eta^{#mu}| < 2.4");   
 				TLatex latex3;
-				latex3.DrawLatex(10.2,43,"p_{T}^{#Upsilon} < 20 GeV/c");
+				//latex3.DrawLatex(10.2,43,"p_{T}^{#Upsilon} < 20 GeV/c");
 				TLatex latex5;
 				latex5.DrawLatex(10.2,36,"L_{int} = 7.28 #mub^{-1}");
 				TLatex latex4;
@@ -442,7 +474,7 @@ void fitUpsilonYields(){
 				TLatex latex2;
 				latex2.DrawLatex(10.2,62,"p_{T}^{#mu} > 4 GeV/c, |#eta^{#mu}| < 2.4");   
 				TLatex latex3;
-				latex3.DrawLatex(10.2,53,"p_{T}^{#Upsilon} < 20 GeV/c");
+				//latex3.DrawLatex(10.2,53,"p_{T}^{#Upsilon} < 20 GeV/c");
 				TLatex latex5;
 				latex5.DrawLatex(10.2,44,"L_{int} = 225 nb^{-1}");
 				TLatex latex4;
@@ -456,24 +488,22 @@ void fitUpsilonYields(){
 		c.SaveAs(figs_+figName_+paramOn_+suffix_+".pdf");
 
 		//overlay the pp ratio, calculate the significance of suppression
-		if (PbPb) suppression(nsig1f, fit_2nd, nfloatpars, pdf, pdf_pp, data, frame);
+		//if (PbPb) suppression(nsig1f, fit_2nd, nfloatpars, pdf, pdf_pp, data, frame);
 
 		//setup the limits
 		float baseNll = fit_2nd->minNll();
-		setUpLimits(-0.08, 0.92, pdf, data, f23vs1S, baseNll);
+		//setUpLimits(-0.08, 0.92, pdf, data, f23vs1S, baseNll);
 		//setUpLimits(-0.1, 0.9, pdf, data, f2Svs1S, baseNll);
 
 		//calculate the confidence interval with RooStats
-		ConfidencInterval(0.95, f23vs1S, data, pdf);
+		//ConfidencInterval(0.95, f23vs1S, data, pdf);
 		//ConfidencInterval(0.95, f2Svs1S, data, pdf);
 
 		//sidebandFit
-		sidebandFit(1, SB_bkg_a1, SB_bkg_a2, SB_nbkgd, S_pdf, SB_pdf, data, frame);
+		//sidebandFit(1, SB_bkg_a1, SB_bkg_a2, SB_nbkgd, S_pdf, SB_pdf, data, frame);
 
 		// Print fit results 
 		cout << endl << "figure name: "<< figName_ << endl << endl;
-		//cout << "the pre-fit with only sideband pdf" << endl ;
-		//fit_1st->Print() ;
 		cout << "the nominal fit with the default pdf " << endl ;
 		fit_2nd->Print() ;
 		cout << "  free parameter = "<< nfloatpars << ", mychi2 = " << mychsq << ", ndof = " << myndof << endl << endl;
@@ -504,7 +534,7 @@ void sidebandFit(bool range, RooRealVar *SB_bkg_a1, RooRealVar *SB_bkg_a2, RooRe
 	}
 	else {
 		//fit in the signal range only
-		if (PbPb) SB_nbkgd->setVal(SB_nbkgd->getVal()*0.90);
+		if (PbPb) SB_nbkgd->setVal(SB_nbkgd->getVal()*1.0);
 		else SB_nbkgd->setVal(SB_nbkgd->getVal()*0.97);
 		SB_nbkgd->setConstant(kTRUE);
 		RooFitResult* fit_S = S_pdf->fitTo(*data,Range("R2"),Save(kTRUE),Extended(kTRUE),Minos(doMinos));
@@ -541,7 +571,7 @@ void sidebandFit(bool range, RooRealVar *SB_bkg_a1, RooRealVar *SB_bkg_a2, RooRe
 			TLatex latex2;
 			latex2.DrawLatex(10.2,50,"p_{T}^{#mu} > 4 GeV/c, |#eta^{#mu}| < 2.4");   
 			TLatex latex3;
-			latex3.DrawLatex(10.2,43,"p_{T}^{#Upsilon} < 20 GeV/c");
+			//latex3.DrawLatex(10.2,43,"p_{T}^{#Upsilon} < 20 GeV/c");
 			TLatex latex5;
 			latex5.DrawLatex(10.2,36,"L_{int} = 7.28 #mub^{-1}");
 			TLatex latex4;
@@ -553,7 +583,7 @@ void sidebandFit(bool range, RooRealVar *SB_bkg_a1, RooRealVar *SB_bkg_a2, RooRe
 			TLatex latex2;
 			latex2.DrawLatex(10.2,62,"p_{T}^{#mu} > 4 GeV/c, |#eta^{#mu}| < 2.4");   
 			TLatex latex3;
-			latex3.DrawLatex(10.2,53,"p_{T}^{#Upsilon} < 20 GeV/c");
+			//latex3.DrawLatex(10.2,53,"p_{T}^{#Upsilon} < 20 GeV/c");
 			TLatex latex5;
 			latex5.DrawLatex(10.2,44,"L_{int} = 225 nb^{-1}");
 			TLatex latex4;
