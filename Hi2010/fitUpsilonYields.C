@@ -380,13 +380,12 @@ void fitUpsilonYields(){
 		if(PbPb){
 		//like-sign muon pairs' mass distribution
 			if (bkgdModel == 1){
-			RooRealVar par0("par0","par0",350,0.,700.) ;
+			//RooRealVar par0("par0","par0",350,0.,700.) ;
 			RooRealVar m0shift("m0shift","m0shift",6,0.,12.) ;
 			RooRealVar width("width","width",5,0.,10.) ;
 			RooRealVar par3("par3","par3",6,0.,12.) ;
-			RooGenericPdf *LikeSignPdf = new  RooGenericPdf("Like-sign","likesign","par0*exp(-@0/par3)*(TMath::Erf((@0-m0shift)/width)+1)",RooArgList(*mass,par0,m0shift,width,par3));
+			RooGenericPdf *LikeSignPdf = new  RooGenericPdf("Like-sign","likesign","exp(-@0/par3)*(TMath::Erf((@0-m0shift)/width)+1)",RooArgList(*mass,m0shift,width,par3));
     		LikeSignPdf.fitTo(*likesignData) ;
-			par0.setConstant(kTRUE);
 			m0shift.setConstant(kTRUE);
 			width.setConstant(kTRUE);
 			par3.setConstant(kTRUE);
@@ -402,7 +401,7 @@ void fitUpsilonYields(){
 				RooArgList(*nResidualbkgd,*nLikesignbkgd));
 			//default pdf
 			RooAbsPdf  *pdf   = new RooAddPdf ("pdf","total signal+background pdf",
-				RooArgList(*gauss1S2,*sig2S,*sig3S,*pdf_combinedbkgd),
+				RooArgList(*gauss1S2,*sig2S,*sig3S,*pdf_combinedbkgd),//*LikeSignPdf),//*pdf_combinedbkgd),
 				RooArgList(*nsig1f,*nsig2f,*nsig3f,*nbkgd));
 
 			//pdf with fixed ratio of the pp ratio
