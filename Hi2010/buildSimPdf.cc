@@ -14,6 +14,7 @@
 #include "RooExtendPdf.h"
 #include "RooKeysPdf.h"
 #include "RooSimultaneous.h"
+#include "RooGenericPdf.h"
 
 #include "TTree.h"
 #include "TFile.h"
@@ -22,7 +23,7 @@ float mmin = 7.0, mmax = 14.0;
 TString dirname_ = "";
 TString treeName = "UpsilonTree_allsign";
 
-bool buildPdf(RooWorkspace &ws, bool hi) {
+bool buildPdf(RooWorkspace &ws, bool hi, bool doKeys = false) {
 
   double const M1S(9.460);
   double const M2S(10.023);
@@ -32,7 +33,7 @@ bool buildPdf(RooWorkspace &ws, bool hi) {
     mass = new RooRealVar("invariantMass", "#mu#mu mass", mmin, mmax, 
 			  "GeV/c^{2}");
   }
-  
+//   mass->setRange(mmin,mmax);
   RooRealVar mean("mean", "mean", M1S, M1S-0.3, M1S+0.3, "GeV/c^{2}");
 
   RooConstVar rat2("rat2", "rat2", M2S/M1S);
@@ -62,37 +63,60 @@ bool buildPdf(RooWorkspace &ws, bool hi) {
   RooCBShape sig2S("sig2S", "sig2S", *mass, mean2S, sigma2S, alpha, npow);
   RooCBShape sig3S("sig3S", "sig3S", *mass, mean3S, sigma3S, alpha, npow);
 
-
-  TString likeSignCut("(QQsign != QQsign::PlusMinus)&&(dataCat == dataCat::");
-  likeSignCut += (hi) ? "hi)" : "pp)";
-  RooDataSet * likeSignData = 
-    dynamic_cast<RooDataSet*>(ws.data("data")->reduce(likeSignCut));
-
-  assert(likeSignData);
-  RooKeysPdf LikeSignPdf("bkgLikeSignPdf", "bkgLikeSignPdf", *mass, 
-			 *likeSignData, RooKeysPdf::MirrorBoth, 1.3);
-  RooRealVar nLikeSign("nLikeSign", "nLikeSign", likeSignData->sumEntries());
-  delete likeSignData;
-  std::cout << "like sign events: " << nLikeSign.getVal() << '\n';
-  RooRealVar bkg_a1("bkg_a1", "a_{1,bkg}", 0., -2., 2.);
-  RooRealVar bkg_a2("bkg_a2", "a_{2,bkg}", 0., -2., 2.);
-  RooChebychev bkg("bkg", "bkg", *mass, RooArgList(bkg_a1, bkg_a2));
-
   RooRealVar nsig1("nsig1", "N_{1S}", 100, -1000, 1e6);
   RooRealVar f23("f23", "(2S+3S)/1S", 0.5);
   f23.setConstant(false);
-   RooRealVar f2("f2", "2S/1S", 0.2);
-   //RooRealVar f2("f2", "3S/2S", 0.6);
+  RooRealVar f2("f2", "2S/1S", 0.2);
+//   RooRealVar f2("f2", "3S/2S", 0.6, 0., 10.);
   f2.setConstant(false);
-  RooRealVar nbkg("nbkg", "N_{bkg}", 5000., -1000., 1e6);
-  RooFormulaVar nMorph("nMorph", "nMorph", "@0-@1",
-		       RooArgList(nbkg,nLikeSign));
 
   RooFormulaVar nsig2("nsig2", "@0*@1", RooArgList(nsig1,f2));
   RooFormulaVar nsig3("nsig3", "@0*(@1-@2)", RooArgList(nsig1, f23, f2));
 
-  // RooFormulaVar nsig2("nsig2", "@0*@1/(1+@2)", RooArgList(nsig1, f23, f2));
-  // RooFormulaVar nsig3("nsig3", "@0*@1*@2/(1+@2)", RooArgList(nsig1, f23, f2));
+//   RooFormulaVar nsig2("nsig2", "@0*@1/(1+@2)", RooArgList(nsig1, f23, f2));
+//   RooFormulaVar nsig3("nsig3", "@0*@1*@2/(1+@2)", RooArgList(nsig1, f23, f2));
+  RooRealVar turnOn("turnOn","turnOn", 6.);
+  turnOn.setConstant(false);
+  RooRealVar width("width","width", 1., 0., 20.);
+  RooRealVar decay("decay","decay", 7.);
+  decay.setConstant(false);
+  RooGenericPdf bkgErfExp("bkg","bkg",
+		       "exp(-@0/@3)*(TMath::Erf((@0-@1)/@2)+1)",
+		       RooArgList(*mass, turnOn, width, decay));
+
+  RooRealVar nbkg("nbkg", "N_{bkg}", 5000., -1000., 1e6);
+
+  RooRealVar bkg_a1("bkg_a1", "a_{1,bkg}", 0., -2., 2.);
+  RooRealVar bkg_a2("bkg_a2", "a_{2,bkg}", 0., -2., 2.);
+  RooChebychev bkgPoly("bkgPoly", "bkg", *mass, 
+		       RooArgList(bkg_a1, bkg_a2));
+  RooRealVar * nLikeSign = 0;
+  RooKeysPdf * LikeSignPdf = 0;
+  RooFormulaVar * nPoly = 0;
+  if (doKeys) {
+
+    TString likeSignCut("(QQsign != QQsign::PlusMinus)"
+			"&&(dataCat == dataCat::");
+    likeSignCut += (hi) ? "hi)" : "pp)";
+    RooDataSet * likeSignData = 
+      dynamic_cast<RooDataSet*>(ws.data("data")->reduce(likeSignCut));
+
+    assert(likeSignData);
+    LikeSignPdf = new RooKeysPdf("bkgLikeSignPdf", "bkgLikeSignPdf", *mass, 
+				 *likeSignData, RooKeysPdf::MirrorBoth, 1.2);
+    nLikeSign = 
+      new RooRealVar("nLikeSign", "nLikeSign", 
+		     likeSignData->sumEntries(TString::Format("(%s>%0.1f)&&"
+							      "(%s<%0.1f)",
+							      mass->GetName(),
+							      mmin, 
+							      mass->GetName(),
+							      mmax)));
+    delete likeSignData;
+    std::cout << "like sign events: " << nLikeSign->getVal() << '\n';
+    nPoly =  new RooFormulaVar ("nPoly", "nPoly", "@0-@1",
+				RooArgList(nbkg,*nLikeSign));
+  }
 
 //   RooExtendPdf sig1SN("sig1SN", "sig1SN", sig1SN, nsig1);
 //   RooExtendPdf sig2SN("sig2SN", "sig2SN", sig2SN, nsig2);
@@ -100,20 +124,55 @@ bool buildPdf(RooWorkspace &ws, bool hi) {
 //   RooExtendPdf bkgN("bkgN", "bkgN", bkgN, nbkg);
 
   // RooAddPdf pdf("pdf", "pdf", RooArgList(sig1SN, sig2SN, sig3SN, bkgN));
-  TString pdfName("pdf");
-  RooAddPdf pdf(pdfName, pdfName, 
-		RooArgList(sig1S, sig2S, sig3S, LikeSignPdf, bkg),
-		RooArgList(nsig1, nsig2, nsig3, nLikeSign,   nMorph));
+  RooArgList pdfs(sig1S, sig2S, sig3S);
+  RooArgList norms(nsig1, nsig2, nsig3);
+  RooAddPdf sig("sig", "sig", pdfs, norms);
+  ws.import(sig, RooFit::RenameAllNodes((hi)?"hi":"pp"),
+	    RooFit::RenameAllVariablesExcept((hi)? "hi": "pp", 
+					     "npow,invariantMass,"
+					     "alpha,"
+					     "sigma1"), 
+	    RooFit::Silence());
+
+  if (doKeys) {
+    RooAddPdf bkg("bkg", "bkg", RooArgList(*LikeSignPdf, bkgPoly),
+		  RooArgList(*nLikeSign, *nPoly));
+    ws.import(bkg, RooFit::RenameAllNodes((hi)?"hi":"pp"),
+	      RooFit::RenameAllVariablesExcept((hi)? "hi": "pp", 
+					       "npow,invariantMass,"
+					       "alpha,"
+					       "sigma1"), 
+	      RooFit::Silence());
+    pdfs.add(RooArgList(*LikeSignPdf, bkgPoly));
+    norms.add(RooArgList(*nLikeSign, *nPoly));
+  } else {
+    if (hi)
+      pdfs.add(bkgErfExp);
+    else {
+      bkgPoly.SetName("bkg");
+      pdfs.add(bkgPoly);
+    }
+    norms.add(nbkg);
+  }
+//   RooAddPdf pdf(pdfName, pdfName, RooArgList(sig, bkg));
+
+  RooAddPdf pdf("pdf", "pdf", pdfs, norms);
 
   //pdf.Print("v");
-  return ws.import(pdf, 
-		   RooFit::RenameAllNodes((hi)?"hi":"pp"),
-		   RooFit::RenameAllVariablesExcept((hi)? "hi": "pp", 
-						    "npow,invariantMass,"
-						    "alpha,"
-						    "sigma1"), 
-		   RooFit::Silence()
-		   );
+  ws.import(pdf, 
+	    RooFit::RenameAllNodes((hi)?"hi":"pp"),
+	    RooFit::RenameAllVariablesExcept((hi)? "hi": "pp", 
+					     "npow,invariantMass,"
+					     "alpha,"
+					     "sigma1"),
+	    RooFit::RecycleConflictNodes());
+
+  if (doKeys) {
+    delete nLikeSign;
+    delete LikeSignPdf;
+    delete nPoly;
+  }
+  return true;
 }
 
 RooSimultaneous* buildSimPdf(RooWorkspace &ws, RooCategory& dataCat) {
@@ -163,6 +222,7 @@ bool readData(RooWorkspace &ws, TString HIfilename, TString ppFilename,
   if (!mass) {
     mass = new RooRealVar("invariantMass", "#mu#mu mass", mmin, mmax, 
 			  "GeV/c^{2}");
+    mass->setBins(70);
   }
   RooRealVar muppt("muPlusPt" ,"#mu+ pt",2,20,"GeV/c"); 
   RooRealVar mumpt("muMinusPt","#mu- pt",2,20,"GeV/c"); 
@@ -215,7 +275,7 @@ bool readData(RooWorkspace &ws, TString HIfilename, TString ppFilename,
   RooDataSet data("data", "data", cols, RooFit::Index(dataCat),
 		  RooFit::Import("hi", hidata), RooFit::Import("pp", ppdata));
 
-  data.Print("v");
+//   data.Print("v");
   return ws.import(data/*, RooFit::RecycleConflictNodes(), RooFit::Silence()*/);  
 }
 
