@@ -23,7 +23,7 @@ from ROOT import readData,computeRatio,computeRatioError,buildPdf,\
 RooMsgService.instance().setGlobalKillBelow(RooFit.WARNING)
 
 hidatafile = 'data/dimuonTree_181912-182609.root'
-ppdatafile = 'data/MassTree_NewCuts_pp_HIrereco.root'
+ppdatafile = 'data/dimuonTree_2011_pp.root'
 
 cuts = '(muPlusPt > %0.1f) && (muMinusPt > %0.1f) && (abs(upsRapidity)<2.4)' \
        % (opts.pt, opts.pt)

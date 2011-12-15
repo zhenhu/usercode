@@ -9,41 +9,6 @@
 
 #include <iostream>
 
-/*
-  hiToys : this function will generate and fit pseudo-experiments.
-  These pseudo-experiments use the pp shape as the signal shape for
-  both pp and hi pseudo-signal with the ability to tweak X_23.
-
-  Parameters: 
-  
-  Ntoys : number of pseudo-experiements you want to
-  produce and fit.  
-
-  parVals : name of a text file that contains the initial values for
-  the floating parameters in the fit.  Of the format the RooFit likes
-  to read in.
-
-  outfname : a filename for the output of the results of the pseudo
-  experiments. This file will contain a line for each
-  pseudo-experiment.  Each line will have the results of the floating
-  parameters and their generated value if that can be deduced.
-
-  randfname : a filename for a root file containing a RooFitResult
-  that will be used to randomize the generation.
-
-  systfname : a filename for a root file containing a RooFitResult
-  that will be used to randomize the generation of the fixed signal
-  shape parameters.
-
-  desiredX_23 : This will be the X_23 imposed on the data, by
-  modifying the hi pdf.
-
-  seed : this is the random seed.  Zero is good, but when running in
-  batch one may wish to set it manually to ensure all of the jobs are
-  different.
-  
- */
-
 RooDataSet * genSameSignDatasets(RooWorkspace& ws) {
   RooRealVar * mass = ws.var("invariantMass");
   TIter types(ws.cat("dataCat")->typeIterator());
@@ -124,6 +89,41 @@ RooDataSet * genOppositeSignSignal(RooWorkspace& ws, int Nhi, int Npp) {
   return osSigData;
 }
 
+/*
+  hiToys : this function will generate and fit pseudo-experiments.
+  These pseudo-experiments use the pp shape as the signal shape for
+  both pp and hi pseudo-signal with the ability to tweak X_23.
+
+  Parameters: 
+  
+  Ntoys : number of pseudo-experiements you want to
+  produce and fit.  
+
+  parVals : name of a text file that contains the initial values for
+  the floating parameters in the fit.  Of the format the RooFit likes
+  to read in.
+
+  outfname : a filename for the output of the results of the pseudo
+  experiments. This file will contain a line for each
+  pseudo-experiment.  Each line will have the results of the floating
+  parameters and their generated value if that can be deduced.
+
+  randfname : a filename for a root file containing a RooFitResult
+  that will be used to randomize the generation.
+
+  systfname : a filename for a root file containing a RooFitResult
+  that will be used to randomize the generation of the fixed signal
+  shape parameters.
+
+  desiredX_23 : This will be the X_23 imposed on the data, by
+  modifying the hi pdf.
+
+  seed : this is the random seed.  Zero is good, but when running in
+  batch one may wish to set it manually to ensure all of the jobs are
+  different.
+  
+ */
+
 void hiToys(int Ntoys, TString parVals, TString outfname, 
 	    double ptCut,
 	    bool useKeys = false,
@@ -132,8 +132,8 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
 	    unsigned int seed = 0) {
   RooWorkspace ws;
   mmin = 7.0; mmax = 14.0; //linearbg_ = false;
-  TString hidatafile("data/dimuonTree_181912-182609.root");
-  TString ppdatafile("data/MassTree_NewCuts_pp_HIrereco.root");
+  TString hidatafile("tardir/data/dimuonTree_181912-182609.root");
+  TString ppdatafile("tardir/data/dimuonTree_2011_pp.root");
 
   RooMsgService::instance().setGlobalKillBelow(RooFit::WARNING);
   RooRandom::randomGenerator()->SetSeed(seed);
