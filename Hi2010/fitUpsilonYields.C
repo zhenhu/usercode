@@ -33,18 +33,18 @@
 
 /*INPUTs*/
 
-double mass_l = 7.0;
+double mass_l = 7;
 double mass_h = 14.0;
 #define mmin_ mass_l 
 #define mmax_ mass_h
 #define fmin_ mass_l
 #define fmax_ mass_h
-double binw_ = 0.1;//bin width of the histogram
-double width_ = 0.092; //0.0832; //new resolution for 2011 HI data, but we are using floating resolution for the minbias 2011 sample
-bool plotpars = 1;//false;
-bool doMinos = 1; //kFALSE;
-bool PbPb = 1;    //1: PbPb data;  0: pp data
-bool bkgdModel =1;//Background Model.  1: Error function;  0: RooKeysPdf 
+double binw_ = 0.1;    //bin width of the histogram
+double width_ = 0.083; //new resolution for 2011 HI data, but we are using floating resolution for the minbias 2011 sample
+bool plotpars = 1;     //false;
+bool doMinos = 1;      //kFALSE;
+bool PbPb = 1;         //Input data sample: 1: PbPb data;  0: pp data
+int bkgdModel = 2;     //Background Model:  1: erf*exp + polynomial; 2: RookeyPdf + polynomial; 3: erf*exp; 4: polynomial
 
 RooRealVar *f2Svs1S_pp = new RooRealVar("N_{3S}/N_{1S}pp","Y(3S)/Y(1S) yields pp ratio",0.49165,-1,5);
 RooRealVar *f3Svs1S_pp = new RooRealVar("N_{2S}/N_{1S}pp","Y(2S)/Y(1S) yields pp ratio",0.32202,-1,5);
@@ -89,7 +89,8 @@ void fitUpsilonYields(){
 		figName_ = "masspeak_Hi"; //output fig names
 	}
 	else {
-		finput = "MassTree_NewCuts_pp_HIrereco.root";
+	//	finput = "MassTree_NewCuts_pp_HIrereco.root";
+		finput = "/home/zhenhu/HI2011/dimuonTree_2011_pp.root";
 		figName_ = "masspeak_pp_HIrereco";
 	}
 
@@ -135,19 +136,19 @@ void fitUpsilonYields(){
 				suffix_="_eta12-24"; binw_=0.14;
 				break;
 			case 3:
-				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && Centrality>=0 && Centrality<4";
+				cut_="muPlusPt > 3.5 && muMinusPt > 3.5 && Centrality>=0 && Centrality<4";
 				suffix_="_cntr0-10"; binw_=0.14;
 				break;
 			case 4:
-				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && Centrality>=4 && Centrality<8";
+				cut_="muPlusPt > 3.5 && muMinusPt > 3.5 && Centrality>=4 && Centrality<8";
 				suffix_="_cntr10-20"; binw_=0.14;
 				break;
 			case 5:
-				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && Centrality>=8 && Centrality<20";
+				cut_="muPlusPt > 3.5 && muMinusPt > 3.5 && Centrality>=8 && Centrality<20";
 				suffix_="_cntr20-50"; binw_=0.14;
 				break;
 			case 6:
-				cut_="muPlusPt > 4.0 && muMinusPt > 4.0 && Centrality>=20 && Centrality<50";
+				cut_="muPlusPt > 3.5 && muMinusPt > 3.5 && Centrality>=20 && Centrality<50";
 				suffix_="_cntr50-100"; binw_=0.14;
 				break;
 			case 7:
@@ -244,12 +245,11 @@ void fitUpsilonYields(){
 		data->Print();
 
 		//import like-sign data set
-		if (PbPb) {
-			likesignData0 = new RooDataSet("likesignData","likesignData",allsignTree,RooArgSet(*mass,*upsRapidity,*vProb,*upsPt,*Centrality,*muPlusPt,*muMinusPt,*QQsign));
-			likesignData0->Print();
-			likesignData = ( RooDataSet*) likesignData0->reduce(Cut(cut_+" && QQsign != 0"));
-			likesignData->Print();
-		}
+		if (PbPb) likesignData0 = new RooDataSet("likesignData","likesignData",allsignTree,RooArgSet(*mass,*upsRapidity,*vProb,*upsPt,*Centrality,*muPlusPt,*muMinusPt,*QQsign));
+		else likesignData0 = new RooDataSet("likesignData","likesignData",allsignTree,RooArgSet(*mass,*upsRapidity,*vProb,*upsPt,*muPlusPt,*muMinusPt,*QQsign));
+		likesignData0->Print();
+		likesignData = ( RooDataSet*) likesignData0->reduce(Cut(cut_+" && QQsign != 0"));
+		likesignData->Print();
 
 		RooRealVar* mass  = new RooRealVar("invariantMass","#mu#mu mass",mmin_,mmax_,"GeV/c^{2}");
 		mass->setRange("R1",7.0,8.8);
@@ -329,8 +329,8 @@ void fitUpsilonYields(){
 				*mass, RooArgList(*bkg_a1,*bkg_a2));
 		//bkg_a1->setVal(0);
 		//bkg_a1->setConstant(kTRUE);
-		//bkg_a2->setVal(0);
-		//bkg_a2->setConstant(kTRUE);
+		bkg_a2->setVal(0);
+		bkg_a2->setConstant(kTRUE); //set constant for liner background
 
 		// only sideband region pdf, using RooPolynomial instead of RooChebychev for multiple ranges fit
 		RooRealVar *SB_bkg_a1  = new RooRealVar("SB bkg_{a1}", "background a1", 0, -1, 1);
@@ -377,61 +377,72 @@ void fitUpsilonYields(){
 				RooArgList(*gauss1S2,*sig2S,*sig3S,*SB_bkgPdf),
 				RooArgList(*nsig1f,*nsig2f,*nsig3f,*SB_nbkgd));
 
-		if(PbPb){
-		//like-sign muon pairs' mass distribution
-			if (bkgdModel == 1){
-			//RooRealVar par0("par0","par0",350,0.,700.) ;
-			RooRealVar m0shift("m0shift","m0shift",6,0.,12.) ;
-			RooRealVar width("width","width",5,0.,10.) ;
-			RooRealVar par3("par3","par3",6,0.,12.) ;
-			RooGenericPdf *LikeSignPdf = new  RooGenericPdf("Like-sign","likesign","exp(-@0/par3)*(TMath::Erf((@0-m0shift)/width)+1)",RooArgList(*mass,m0shift,width,par3));
-    		LikeSignPdf.fitTo(*likesignData) ;
+		//parameters for likesign
+		RooRealVar m0shift("m0shift","m0shift",6,0.,12.) ;
+		RooRealVar width("width","width",5,0.,10.) ;
+		RooRealVar par3("par3","par3",6,0.,12.) ;
+
+		RooRealVar *nLikesignbkgd = new RooRealVar("NLikesign_{bkg}","nlikesignbkgd",nt*0.75,0,10*nt);
+		nLikesignbkgd->setVal(likesignData->sumEntries());
+		nLikesignbkgd->setConstant(kTRUE);
+		RooFormulaVar *nResidualbkgd = new RooFormulaVar("NResidual_{bkg}","@0-@1",RooArgList(*nbkgd,*nLikesignbkgd));
+
+		switch (bkgdModel) {
+			case 1 :  //use error function to fit the like-sign, then fix the shape and normailization, 
+    		RooGenericPdf *LikeSignPdf = new  RooGenericPdf("Like-sign","likesign","exp(-@0/par3)*(TMath::Erf((@0-m0shift)/width)+1)",RooArgList(*mass,m0shift,width,par3));
+			LikeSignPdf.fitTo(*likesignData) ;
 			m0shift.setConstant(kTRUE);
 			width.setConstant(kTRUE);
 			par3.setConstant(kTRUE);
-			}
-			else RooKeysPdf *LikeSignPdf = new RooKeysPdf("Like-sign","likesign",*mass,*likesignData,3,1.3);
-
-			RooRealVar *nLikesignbkgd = new RooRealVar("NLikesign_{bkg}","nlikesignbkgd",nt*0.75,0,10*nt);
-			nLikesignbkgd->setVal(likesignData->sumEntries());
-			nLikesignbkgd->setConstant(kTRUE);
-			RooFormulaVar *nResidualbkgd = new RooFormulaVar("NResidual_{bkg}","@0-@1",RooArgList(*nbkgd,*nLikesignbkgd));
 			RooAbsPdf  *pdf_combinedbkgd   = new RooAddPdf ("pdf_combinedbkgd","total combined background pdf",
 				RooArgList(*bkgPdf,*LikeSignPdf),
 				RooArgList(*nResidualbkgd,*nLikesignbkgd));
-			//default pdf
-			RooAbsPdf  *pdf   = new RooAddPdf ("pdf","total signal+background pdf",
-				RooArgList(*gauss1S2,*sig2S,*sig3S,*pdf_combinedbkgd),//*LikeSignPdf),//*pdf_combinedbkgd),
+			break;
+
+			case 2 : //use RooKeysPdf to smooth the like-sign, then fix the shape and normailization
+			RooKeysPdf *LikeSignPdf = new RooKeysPdf("Like-sign","likesign",*mass,*likesignData,3,1.4);
+			RooAbsPdf  *pdf_combinedbkgd   = new RooAddPdf ("pdf_combinedbkgd","total combined background pdf",
+				RooArgList(*bkgPdf,*LikeSignPdf),
+				RooArgList(*nResidualbkgd,*nLikesignbkgd));
+			break;
+
+			case 3 : //use error function to fit the unlike-sign directly
+			RooGenericPdf *LikeSignPdf = new  RooGenericPdf("Like-sign","likesign","exp(-@0/par3)*(TMath::Erf((@0-m0shift)/width)+1)",RooArgList(*mass,m0shift,width,par3));
+			RooAbsPdf  *pdf_combinedbkgd   = new RooAddPdf ("pdf_combinedbkgd","total combined background pdf",
+				RooArgList(*LikeSignPdf),
+				RooArgList(*nbkgd));
+			break;
+
+			case 4 : //use polynomial to fit the unlike-sign directly
+			RooAbsPdf  *pdf_combinedbkgd   = new RooAddPdf ("pdf_combinedbkgd","total combined background pdf",
+				RooArgList(*bkgPdf),
+				RooArgList(*nbkgd));
+			break;
+			default :
+			break;
+		}
+
+		//default pdf
+		RooAbsPdf  *pdf   = new RooAddPdf ("pdf","total signal+background pdf",
+				RooArgList(*gauss1S2,*sig2S,*sig3S,*pdf_combinedbkgd),
 				RooArgList(*nsig1f,*nsig2f,*nsig3f,*nbkgd));
 
-			//pdf with fixed ratio of the pp ratio
-			RooAbsPdf  *pdf_pp   = new RooAddPdf ("pdf_pp","total signal+background pdf",
+		//pdf with fixed ratio of the pp ratio
+		RooAbsPdf  *pdf_pp   = new RooAddPdf ("pdf_pp","total signal+background pdf",
 				RooArgList(*gauss1S2,*sig2S,*sig3S,*pdf_combinedbkgd),
 				RooArgList(*nsig1f,*nsig2f_,*nsig3f_,*nbkgd));
-		}
-		else{
-		//default pdf
-			RooAbsPdf  *pdf   = new RooAddPdf ("pdf","total signal+background pdf",
-				RooArgList(*gauss1S2,*sig2S,*sig3S,*bkgPdf),
-				RooArgList(*nsig1f,*nsig2f,*nsig3f,*nbkgd));
-		}
 
-		//plot
-		TCanvas c; c.cd();
-		int nbins = ceil((mmax_-mmin_)/binw_); 
-		RooPlot* frame = mass->frame(Bins(nbins),Range(mmin_,mmax_));
-		if (PbPb) likesignData->plotOn(frame,Name("theLikeSignData"),MarkerSize(0.8),MarkerColor(kRed),MarkerStyle(24));
-		data->plotOn(frame,Name("theData"),MarkerSize(0.8));
 		
 		//the nominal fit with default pdf 
 		RooFitResult* fit_2nd = pdf->fitTo(*data,Save(kTRUE),Extended(kTRUE),Minos(doMinos));
+		
 		//plot
+        TCanvas c; c.cd();
+        int nbins = ceil((mmax_-mmin_)/binw_); 
+        RooPlot* frame = mass->frame(Bins(nbins),Range(mmin_,mmax_));
+        likesignData->plotOn(frame,Name("theLikeSignData"),MarkerSize(0.8),MarkerColor(kRed),MarkerStyle(24));
+        data->plotOn(frame,Name("theData"),MarkerSize(0.8));
 		pdf->plotOn(frame,Name("thePdf"));
-		pdf->plotOn(frame,Components("bkg"),Name("theBkg"),LineStyle(5),LineColor(kGreen));
-		if(PbPb){
-			pdf->plotOn(frame,Components("Like-sign"),Name("theLikeSign"),LineStyle(9),LineColor(kRed));
-			pdf->plotOn(frame,Components("pdf_combinedbkgd"),LineStyle(kDashed));
-		}
 		RooArgSet * pars = pdf->getParameters(data);
 
 		//calculate chi2 in a mass range
@@ -448,11 +459,39 @@ void fitUpsilonYields(){
 //		int nfloatpars = pars->selectByAttrib("Constant",kFALSE)->getSize();
 //		float myndof = frame->GetNbinsX() - nfloatpars;
 //		double mychsq = frame->chiSquare("thePdf","theData",nfloatpars)*myndof;
+
+		//plot parameters
 		if(plotpars) {
 			paramOn_ = "_paramOn";
 			pdf->paramOn(frame,Layout(0.5,0.935,0.97),Label(Form("#chi^{2}/ndf = %2.1f/%2.0f", mychsq,myndof)));
 		}
-		else paramOn_ = "";
+		else {
+			paramOn_ = "";
+            if (PbPb){
+                TLatex latex1;
+                latex1.DrawLatex(10.2,57, "CMS, PbPb, #sqrt{s_{NN}} = 2.76 TeV");
+                TLatex latex2;
+                latex2.DrawLatex(10.2,50,"p_{T}^{#mu} > 4 GeV/c, |#eta^{#mu}| < 2.4");
+                TLatex latex3;
+                //latex3.DrawLatex(10.2,43,"p_{T}^{#Upsilon} < 20 GeV/c");
+                TLatex latex5;
+                latex5.DrawLatex(10.2,36,"L_{int} = 7.28 #mub^{-1}");
+                TLatex latex4;
+                latex4.DrawLatex(7.5,57, "b)");
+            }
+            else {
+                TLatex latex1;
+                latex1.DrawLatex(10.2,71, "CMS, pp, #sqrt{s} = 2.76 TeV");
+                TLatex latex2;
+                latex2.DrawLatex(10.2,62,"p_{T}^{#mu} > 4 GeV/c, |#eta^{#mu}| < 2.4");
+                TLatex latex3;
+                //latex3.DrawLatex(10.2,53,"p_{T}^{#Upsilon} < 20 GeV/c");
+                TLatex latex5;
+                latex5.DrawLatex(10.2,44,"L_{int} = 225 nb^{-1}");
+                TLatex latex4;
+                latex4.DrawLatex(7.5,71, "a)");
+            }
+		}
 
 		outfile<<"Y(1S) yield  : = "<<nsig1f->getVal()<<" +/- "<<nsig1f->getError()<<endl<<endl;
 		outfile<<"2S/1S        : = "<<f2Svs1S->getVal()<<" +/- "<<f2Svs1S->getError()<<endl<<endl;
@@ -461,40 +500,19 @@ void fitUpsilonYields(){
 		outfile<<"(3S+2S)/1S suppression  : = "<< f23vs1S->getVal()/(f2Svs1S_pp->getVal()+f3Svs1S_pp->getVal())<<endl<<endl;
 		outfile<<"free parameter = "<< nfloatpars << ", mychi2 = " << mychsq << ", ndof = " << myndof  << endl << endl;
 
-		//draw and save plots
+		//draw the fit lines and save plots
+        pdf->plotOn(frame,Components("bkg"),Name("theBkg"),LineStyle(5),LineColor(kGreen));
+        pdf->plotOn(frame,Components("Like-sign"),Name("theLikeSign"),LineStyle(9),LineColor(kRed));
+        pdf->plotOn(frame,Components("pdf_combinedbkgd"),LineStyle(kDashed));
+		pdf->plotOn(frame,Name("thePdf"));
+		likesignData->plotOn(frame,Name("theLikeSignData"),MarkerSize(0.8),MarkerColor(kRed),MarkerStyle(24));
 		data->plotOn(frame,MarkerSize(0.8));
+
 		frame->SetTitle( "" );
 		frame->GetXaxis()->SetTitle("#mu#mu invariant mass [GeV/c^{2}]");
 		//frame->GetYaxis()->SetTitleOffset(0.9);//(1.3);
 		//frame->GetYaxis()->SetLabelSize(0.05);
 		frame->Draw();
-		if(!plotpars) {
-			if (PbPb){
-				TLatex latex1;
-				latex1.DrawLatex(10.2,57, "CMS, PbPb, #sqrt{s_{NN}} = 2.76 TeV");   
-				TLatex latex2;
-				latex2.DrawLatex(10.2,50,"p_{T}^{#mu} > 4 GeV/c, |#eta^{#mu}| < 2.4");   
-				TLatex latex3;
-				//latex3.DrawLatex(10.2,43,"p_{T}^{#Upsilon} < 20 GeV/c");
-				TLatex latex5;
-				latex5.DrawLatex(10.2,36,"L_{int} = 7.28 #mub^{-1}");
-				TLatex latex4;
-				latex4.DrawLatex(7.5,57, "b)");
-			}
-			else {
-				TLatex latex1;
-				latex1.DrawLatex(10.2,71, "CMS, pp, #sqrt{s} = 2.76 TeV");   
-				TLatex latex2;
-				latex2.DrawLatex(10.2,62,"p_{T}^{#mu} > 4 GeV/c, |#eta^{#mu}| < 2.4");   
-				TLatex latex3;
-				//latex3.DrawLatex(10.2,53,"p_{T}^{#Upsilon} < 20 GeV/c");
-				TLatex latex5;
-				latex5.DrawLatex(10.2,44,"L_{int} = 225 nb^{-1}");
-				TLatex latex4;
-				latex4.DrawLatex(7.5,71, "a)");
-			}		
-
-		}
 		//	c.SaveAs(figs_+figName_+paramOn_+suffix_+".root");
 		//	c.SaveAs(figs_+figName_+paramOn_+suffix_+".eps");
 		c.SaveAs(figs_+figName_+paramOn_+suffix_+".gif");
