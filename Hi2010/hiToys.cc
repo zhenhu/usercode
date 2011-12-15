@@ -152,12 +152,8 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
   RooArgSet * pars = simPdf->getParameters(ws.data("data"));
   pars->readFromFile(parVals);
 
-  RooArgSet truePars, holdPars;
-  pars->snapshot(truePars, true);
-  pars->snapshot(holdPars, true);
-
-  std::cout << "\nfit parameters\n";
-  truePars.Print("v");
+  std::cout << "\nstarting parameters from fit\n";
+  pars->Print("v");
 
   RooFitResult * nll = 0;
   RooArgSet * newPars = 0;
@@ -285,6 +281,13 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
     toyPars->setRealValue("nsig1_pp", 
 			  toyPars->getRealValue("nsig1_pp")*ppMult);
     toyPars->setRealValue("nbkg_pp", toyPars->getRealValue("nbkg_pp")*ppMult);
+    toyPars->setRealValue("f23_hi", 
+			  toyPars->getRealValue("f23_pp"));
+    toyPars->setRealValue("f2_hi", toyPars->getRealValue("f2_pp"));
+
+    RooArgSet truePars;
+    toyPars->snapshot(truePars, true);
+
     toyData = 
       (RooDataSet *)wsToy.data("data")->reduce("QQsign==QQsign::PlusMinus");
 
@@ -307,6 +310,15 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
 	   << trueVal << ' ';
     }
     
+    fout << "x23 "
+	 << computeRatio(*(wsToy.var("f23_hi")), *(wsToy.var("f23_pp"))) << ' '
+	 << computeRatioError(*(wsToy.var("f23_hi")), *(wsToy.var("f23_pp")))
+	 << ' ' << 1.0 << ' ';
+    fout << "x2 "
+	 << computeRatio(*(wsToy.var("f2_hi")), *(wsToy.var("f2_pp"))) << ' '
+	 << computeRatioError(*(wsToy.var("f2_hi")), *(wsToy.var("f2_pp")))
+	 << ' ' << 1.0 << ' ';
+
     fout << '\n';
     delete toyData;
     delete toyPars;
