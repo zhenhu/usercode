@@ -63,24 +63,30 @@ RooDataSet * genOppositeSignBackground(RooWorkspace& ws, int& Nhi,
   return osBkgData;
 }
 
-RooDataSet * genOppositeSignSignal(RooWorkspace& ws, int Nhi, int Npp) {
+RooDataSet * genOppositeSignSignal(RooWorkspace& ws, int Nhi, int Npp,
+				   double x23 = 1.0, double x2 = 1.0) {
   
   RooRealVar * mass = ws.var("invariantMass");
-  TIter types(ws.cat("dataCat")->typeIterator());
-  RooCatType * type;
-  types.Reset();
   RooDataSet * osSigData = 
     (RooDataSet *)ws.data("data")->emptyClone("toy_os_Data");
   RooAbsPdf * sig = ws.pdf("sig_pp");
+  RooRealVar * f23_pp = ws.var("f23_pp");
+  RooRealVar * f2_pp = ws.var("f2_pp");
   RooDataSet * protoData;
   int N;
-  while ((type=(RooCatType*)types.Next())) {
+  static TString types[2] = {TString("pp"), TString("hi")};
+  for (int i = 0; i<2; ++i) {
     protoData = 
-      (RooDataSet*)ws.data(TString::Format("data_os_%s", type->GetName()));
-    if ((*type) == "hi")
+      (RooDataSet*)ws.data(TString::Format("data_os_%s", types[i].Data()));
+    if (types[i] == "hi") {
       N = Nhi;
-    else
+      sig = ws.pdf("sig_hi");
+      ws.var("f23_hi")->setVal(f23_pp->getVal()*x23);
+      ws.var("f2_hi")->setVal(f2_pp->getVal()*x2);
+    } else {
       N = Npp;
+      sig = ws.pdf("sig_pp");
+    }
     RooDataSet * tmpData = sig->generate(RooArgSet(*mass), N,
 					 RooFit::ProtoData(*protoData));
     osSigData->append(*tmpData);
@@ -128,8 +134,8 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
 	    double ptCut,
 	    bool useKeys = false,
 	    TString randfname = "", TString systfname = "",
-	    /*double desiredX_23 = 1.0,*/ double ppMult = 1.0,
-	    unsigned int seed = 0) {
+	    double ppMult = 1.0, unsigned int seed = 0,
+	    double x23 = 1.0, double x2 = 1.0) {
   RooWorkspace ws;
   mmin = 7.0; mmax = 14.0; //linearbg_ = false;
   TString hidatafile("tardir/data/dimuonTree_181912-182609.root");
@@ -260,7 +266,8 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
     tmpData = genOppositeSignBackground(ws, Nhi_bkg, Npp_bkg);
     toyData->append(*tmpData);
     delete tmpData;
-    tmpData = genOppositeSignSignal(ws, Nhi_tot-Nhi_bkg, Npp_tot-Npp_bkg);
+    tmpData = genOppositeSignSignal(ws, Nhi_tot-Nhi_bkg, Npp_tot-Npp_bkg,
+				    x23, x2);
     toyData->append(*tmpData);
     delete tmpData;
 
@@ -281,9 +288,8 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
     toyPars->setRealValue("nsig1_pp", 
 			  toyPars->getRealValue("nsig1_pp")*ppMult);
     toyPars->setRealValue("nbkg_pp", toyPars->getRealValue("nbkg_pp")*ppMult);
-    toyPars->setRealValue("f23_hi", 
-			  toyPars->getRealValue("f23_pp"));
-    toyPars->setRealValue("f2_hi", toyPars->getRealValue("f2_pp"));
+    toyPars->setRealValue("f23_hi", toyPars->getRealValue("f23_pp")*x23);
+    toyPars->setRealValue("f2_hi", toyPars->getRealValue("f2_pp")*x2);
 
     RooArgSet truePars;
     toyPars->snapshot(truePars, true);
@@ -312,12 +318,14 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
     
     fout << "x23 "
 	 << computeRatio(*(wsToy.var("f23_hi")), *(wsToy.var("f23_pp"))) << ' '
-	 << computeRatioError(*(wsToy.var("f23_hi")), *(wsToy.var("f23_pp")))
-	 << ' ' << 1.0 << ' ';
+	 << computeRatioError(*(wsToy.var("f23_hi")), *(wsToy.var("f23_pp")),
+			      fr->correlation("f23_hi", "f23_pp"))
+	 << ' ' << x23 << ' ';
     fout << "x2 "
 	 << computeRatio(*(wsToy.var("f2_hi")), *(wsToy.var("f2_pp"))) << ' '
-	 << computeRatioError(*(wsToy.var("f2_hi")), *(wsToy.var("f2_pp")))
-	 << ' ' << 1.0 << ' ';
+	 << computeRatioError(*(wsToy.var("f2_hi")), *(wsToy.var("f2_pp")),
+			      fr->correlation("f2_hi", "f2_pp"))
+	 << ' ' << x2 << ' ';
 
     fout << '\n';
     delete toyData;

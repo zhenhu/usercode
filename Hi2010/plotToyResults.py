@@ -14,6 +14,7 @@ def createTree(fnames, altTrue = {}, cut = ''):
             var = False
             err = False
             pull = False
+            gen = False
             varName = 'nll'
             toks = currLine.split()
             doFill = True
@@ -32,7 +33,7 @@ def createTree(fnames, altTrue = {}, cut = ''):
                     elif (not err):
                         if (not (varName + '_err' in cols)):
                             cols[varName + '_err'] = array('d', [0.0])
-                        cols[varName + '_err'][0] = float(tok)
+                        cols[varName + '_err'][0] = abs(float(tok))
                         err = True
                         ## if (float(tok) > 10000):
                         ##     doFill = False
@@ -49,6 +50,10 @@ def createTree(fnames, altTrue = {}, cut = ''):
                         pull = True
                         ## if abs((val - tval)/errval) > 1000:
                         ##     doFill = False
+                    elif (not gen):
+                        if (not (varName + '_gen' in cols)):
+                            cols[varName + '_gen'] = array('d', [0.0])
+                        cols[varName + '_gen'][0] = float(tok)
                 except ValueError:
                     varName = tok.replace('-', '__').replace('.','_')
                     var = False
@@ -78,45 +83,30 @@ if __name__ == '__main__':
     def drawAndPrint(var, altname = ''):
         if len(altname) < 1:
             altname = var
-        data.Draw(var + '>>' + altname + '(30)', var + ' != -9999.99', 'PE');
+        qualCut = '(covQual==3) && (edm <= 1e-1) &&(%s != -9999.99)' % (var)
+        data.Draw(var + '>>' + altname + '(30)', qualCut, 'PE');
         h = gDirectory.Get(altname)
         h.SetMarkerStyle(20)
-        if (altname[-5:] == '_bias') and (altname[0] == 'n'):
+        if ((altname[-5:] == '_bias') or (altname[-8:] == '_biasgen')) and \
+               (altname[0] == 'n'):
             print altname,'mean:',h.GetMean()
-        if (altname[-5:] == '_pull') and (opts.fitPull):
-            data.Draw(var + '>>{0}(30, -5., 5.)'.format(altname), '', 'PE');
+        if ((altname[-5:] == '_pull') or altname[-8:] == '_pullgen') and \
+               (opts.fitPull):
+            data.Draw(var + '>>{0}(50, -5., 5.)'.format(altname),
+                      qualCut, 'PE');
             h = gDirectory.Get(altname)
             h.SetMarkerStyle(20)
-            fitfunc = 'gaus(0)/sqrt(TMath::TwoPi())/[2]'
-            gfit = TF1('gfit', fitfunc, h.GetXaxis().GetXmin(),
-                        h.GetXaxis().GetXmax())
-            gfit.SetParameters(1.0, h.GetMean(), h.GetRMS())
-            gfit.FixParameter(0, 1.0)
-            data.UnbinnedFit('gfit', var, 'abs({0})<5'.format(var), 'E')
-            gfit2 = TF1('gfit2', fitfunc, h.GetXaxis().GetXmin(),
-                        h.GetXaxis().GetXmax())
-            gfit2.SetParameter(0, 1.0)
-            gfit2.FixParameter(1, gfit.GetParameter(1))
-            gfit2.FixParameter(2, gfit.GetParameter(2))
-            h.Fit('gfit2', 'LN0Q')
-            gfit.FixParameter(0, gfit2.GetParameter(0))
-            L = TLatex()
-            L.SetNDC()
-            L.SetTextSize(0.04)
-            L.SetTextAlign(12)
-            gfit.Draw('same')
-            L.DrawLatex(0.12, 0.85, "<x>: %4.3f #pm %4.3f" % \
-                        (gfit.GetParameter(1), gfit.GetParError(1)))
-            L.DrawLatex(0.12, 0.8, "#sigma_{x}: %4.3f #pm %4.3f" % \
-                        (gfit.GetParameter(2), gfit.GetParError(2)))
+            h.Fit("gaus", "", "", -2.4, 2.4)
+        h.SetXTitle(var)
         c.Modified()
         sums = ''
         errs = ''
         errstr = ''
         trues = ''
-        if ((altname[:4] == 'nsig') or (altname[:5] == 'nbkgd')) and \
+        if ((altname[:4] == 'nsig') or (altname[:4] == 'nbkg')) and \
                (altname[-4:] != '_err') and (altname[-5:] != '_pull') and \
-               (altname[-5:] != '_bais'):
+               (altname[-5:] != '_bais') and (altname[-8:] != '_pullgen') and \
+               (altname[-8:] != '_baisgen'):
             mean = h.GetMean()
             rms = h.GetRMS()
             errstr = '%s mean: %5.3f rms: %5.3f fractional err: %6.4f' % (altname, mean, rms, rms/mean)
@@ -197,8 +187,14 @@ if __name__ == '__main__':
             avgTrue = mean(key)
             f = '(' + key.replace('_true', '') + '-' + key + ')/' + \
                 key.replace('true', 'err')
-            drawAndPrint('1-' + str(avgTrue) + '/' + key.replace('_true', ''),
+            drawAndPrint(key.replace('_true', '') + '-' +  str(avgTrue),
                          key.replace('_true', '_bias'))
+        if (key[-4:] == '_gen'):
+            aname = key.replace('gen', 'pullgen')
+            f = '(' + key.replace('_gen', '') + '-' + key + ')/' + \
+                key.replace('gen', 'err')
+            drawAndPrint(key.replace('_gen', '') + '-' + key,
+                         key.replace('_gen', '_biasgen'))
         errstr,sums,errs,trues = drawAndPrint(f,aname)
         if (opts.fracErrs) and (len(errstr) > 0):
             ferrs.append(errstr)

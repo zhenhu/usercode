@@ -23,7 +23,8 @@ float mmin = 7.0, mmax = 14.0;
 TString dirname_ = "";
 TString treeName = "UpsilonTree_allsign";
 
-bool buildPdf(RooWorkspace &ws, bool hi, bool doKeys = false) {
+bool buildPdf(RooWorkspace &ws, bool hi, bool doKeys = false, 
+	      bool all2ndOrder = false) {
 
   double const M1S(9.460);
   double const M2S(10.023);
@@ -69,6 +70,10 @@ bool buildPdf(RooWorkspace &ws, bool hi, bool doKeys = false) {
   RooRealVar f2("f2", "2S/1S", 0.2);
 //   RooRealVar f2("f2", "3S/2S", 0.6, 0., 10.);
   f2.setConstant(false);
+  RooRealVar x23("x23", "#chi_{23}", 0.5);
+  x23.setConstant(false);
+  RooRealVar x2("x2", "#chi_{2}", 0.2);
+  x2.setConstant(false);
 
   RooFormulaVar nsig2("nsig2", "@0*@1", RooArgList(nsig1,f2));
   RooFormulaVar nsig3("nsig3", "@0*(@1-@2)", RooArgList(nsig1, f23, f2));
@@ -130,9 +135,10 @@ bool buildPdf(RooWorkspace &ws, bool hi, bool doKeys = false) {
   ws.import(sig, RooFit::RenameAllNodes((hi)?"hi":"pp"),
 	    RooFit::RenameAllVariablesExcept((hi)? "hi": "pp", 
 					     "npow,invariantMass,"
+					     "x23,x2,"
 					     "alpha,"
 					     "sigma1"), 
-	    RooFit::Silence());
+	    RooFit::RecycleConflictNodes());
 
   if (doKeys) {
     RooAddPdf bkg("bkg", "bkg", RooArgList(*LikeSignPdf, bkgPoly),
@@ -146,7 +152,7 @@ bool buildPdf(RooWorkspace &ws, bool hi, bool doKeys = false) {
     pdfs.add(RooArgList(*LikeSignPdf, bkgPoly));
     norms.add(RooArgList(*nLikeSign, *nPoly));
   } else {
-    if (hi)
+    if ((hi) && (!all2ndOrder))
       pdfs.add(bkgErfExp);
     else {
       bkgPoly.SetName("bkg");
@@ -163,6 +169,7 @@ bool buildPdf(RooWorkspace &ws, bool hi, bool doKeys = false) {
 	    RooFit::RenameAllNodes((hi)?"hi":"pp"),
 	    RooFit::RenameAllVariablesExcept((hi)? "hi": "pp", 
 					     "npow,invariantMass,"
+					     "x23,x2,"
 					     "alpha,"
 					     "sigma1"),
 	    RooFit::RecycleConflictNodes());
@@ -237,12 +244,12 @@ bool readData(RooWorkspace &ws, TString HIfilename, TString ppFilename,
 
   RooArgSet cols(*mass, muppt, mumpt, upsPt, upsRapidity, QQsign, Centrality);
 
-  TFile hifile(HIfilename, "read");
+  TFile * hifile = TFile::Open(HIfilename);
   TTree * tree;
   TString dirTree = treeName;
   if (dirname_.Length() > 0)
     dirTree = dirname_ + "/" + treeName;
-  hifile.GetObject(dirTree, tree);
+  hifile->GetObject(dirTree, tree);
   assert(tree);
   TFile temp("DeleteMe.root", "recreate");
   if (extraCut.Length() > 0) {
@@ -253,10 +260,11 @@ bool readData(RooWorkspace &ws, TString HIfilename, TString ppFilename,
 
   RooDataSet hidata("hidata", "hidata", tree, cols);
   delete tree;
+  delete hifile;
 
-  TFile ppfile(ppFilename, "read");
+  TFile * ppfile = TFile::Open(ppFilename);
   tree = 0;
-  ppfile.GetObject(dirTree, tree);
+  ppfile->GetObject(dirTree, tree);
   assert(tree);
   temp.cd();
   if (extraCut.Length() > 0) {
@@ -267,6 +275,7 @@ bool readData(RooWorkspace &ws, TString HIfilename, TString ppFilename,
 
   RooDataSet ppdata("ppdata", "ppdata", tree, cols);
   delete tree;
+  delete ppfile;
 
   RooCategory dataCat("dataCat", "dataCat");
   dataCat.defineType("hi");
@@ -284,9 +293,11 @@ double computeRatio(RooRealVar& x, RooRealVar& y) {
   return x.getVal()/y.getVal();
 }
 
-double computeRatioError(RooRealVar& x, RooRealVar& y) {
-  double err = x.getError()*x.getError()/x.getVal()/x.getVal() +
-    y.getError()*y.getError()/y.getVal()/y.getVal();
+double computeRatioError(RooRealVar& x, RooRealVar& y, 
+			 double correlation = 0.) {
+  double err2 = x.getError()*x.getError()/x.getVal()/x.getVal() +
+    y.getError()*y.getError()/y.getVal()/y.getVal() - 
+    2.*x.getError()*y.getError()/x.getVal()/y.getVal()*correlation;
 
-  return computeRatio(x,y)*sqrt(err);
+  return fabs(computeRatio(x,y))*sqrt(err2);
 }

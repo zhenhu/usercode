@@ -25,7 +25,7 @@ from ROOT import readData,computeRatio,computeRatioError,buildPdf,\
 RooMsgService.instance().setGlobalKillBelow(RooFit.WARNING)
 
 hidatafile = 'data/dimuonTree_181912-182609.root'
-ppdatafile = 'data/MassTree_NewCuts_pp_HIrereco.root'
+ppdatafile = 'data/dimuonTree_2011_pp.root'
 
 cuts = '(muPlusPt > %0.1f) && (muMinusPt > %0.1f) && (abs(upsRapidity)<2.4)' \
        % (opts.pt, opts.pt)
@@ -67,6 +67,8 @@ for signStr in ['ss', 'os']:
                                          RooFit.Cut(theCut))
         getattr(ws, 'import')(tmpData)
 
+print "N_hi:",Nhi_tot,"N_pp:",Npp_tot,"total:",Nhi_tot+Npp_tot
+
 toyData = ws.data('data').emptyClone()
 
 Npp_bkg = Long(ws.var('nbkg_pp').getVal() + 0.5)
@@ -90,6 +92,9 @@ simPdf = buildSimPdf(wsToy, wsToy.cat('dataCat'))
 pars2 = simPdf.getParameters(wsToy.data('data'))
 pars2.readFromFile(simparamfile)
 
+pars2.setRealValue("f23_hi", pars2.getRealValue("f23_pp"));
+pars2.setRealValue("f2_hi", pars2.getRealValue("f2_pp"));
+
 data = wsToy.data('data').reduce('(QQsign==QQsign::PlusMinus)')
 
 mass = wsToy.var('invariantMass')
@@ -97,7 +102,7 @@ mass = wsToy.var('invariantMass')
 mass.setRange("fitRange",7.,14.)
 mass.setRange(7., 14.)
 
-ws.Print()
+#ws.Print()
 data.Print()
 
 fr = simPdf.fitTo(data, RooFit.Extended(),
@@ -161,7 +166,8 @@ mf_pp.Draw()
 ppcan.Update()
 
 fr.Print('v')
-devError = computeRatioError(wsToy.var('f23_hi'), wsToy.var('f23_pp'))
+devError = computeRatioError(wsToy.var('f23_hi'), wsToy.var('f23_pp'),
+                             fr.correlation('f23_hi', 'f23_pp'))
 print
 print 'double ratios (hi/pp)'
 print '---------------------'
@@ -172,7 +178,8 @@ print '%s : %0.3f +/- %0.3f' % (wsToy.var('f2_pp').GetTitle(),
                                 computeRatio(wsToy.var('f2_hi'),
                                              wsToy.var('f2_pp')),
                                 computeRatioError(wsToy.var('f2_hi'),
-                                                  wsToy.var('f2_pp')))
+                                                  wsToy.var('f2_pp'),
+                                                  fr.correlation('f2_hi', 'f2_pp')))
 print '---------------------'
 print
 
