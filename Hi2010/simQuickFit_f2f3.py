@@ -9,9 +9,9 @@ parser.add_option('--params', '-p', default='nomSimFitf2f3.txt', dest='paramfile
                   help='initial parameters file')
 parser.add_option('--bkgd_PbPb', default=3, dest='bkgd_PbPb',
                   help='select pdf for PbPb background')
-parser.add_option('--bkgd_pp', default=3, dest='bkgd_pp',
+parser.add_option('--bkgd_pp', default=4, dest='bkgd_pp',
                   help='select pdf for pp background')
-parser.add_option('--trkRot', default=True, dest='trkRot',
+parser.add_option('--trkRot', default=False, dest='trkRot',
                   help='use track rotation for background')
 parser.add_option('-b', action='store_true', default=False, dest='b',
                   help='no x windows')
