@@ -46,7 +46,7 @@ setBkgdpp = opts.bkgd_pp
 trkRotBkgd = opts.trkRot
 
 buildPdf(ws, True, setBkgdPbPb, trkRotBkgd)  # pdf for PbPb
-buildPdf(ws, False, setBkgdpp, trkRotBkgd)   # pdf for pp
+buildPdf(ws, False, setBkgdpp, False)   # pdf for pp
 simPdf = buildSimPdf(ws, ws.cat('dataCat'))
 
 mass = ws.var('invariantMass')
