@@ -10,7 +10,7 @@ def cmsPrelimHI(canvas, lumi):
 
     canvas.cd()
     l.DrawLatex(1. - canvas.GetRightMargin(), 1. - canvas.GetTopMargin() + 0.01,
-                'CMS Preliminary 2011, #font[52]{{L}} = {0:0.0f} #mub^{{-1}}, #sqrt{{s_{{NN}}}} = 2.76 TeV'.format(lumi)
+                'CMS preliminary, #font[52]{L} = %0.0f #mub^{-1}, #sqrt{s_{NN}} = 2.76 TeV' % (lumi)
                 )
     canvas.Update()
 
@@ -23,7 +23,7 @@ def cmsPrelimPP(canvas, lumi):
 
     canvas.cd()
     l.DrawLatex(1. - canvas.GetRightMargin(), 1. - canvas.GetTopMargin() + 0.01,
-                'CMS Preliminary 2011, #font[52]{{L}} = {0:0.0f} nb^{{-1}}, #sqrt{{s}} = 2.76 TeV'.format(lumi)
+                'CMS preliminary, #font[52]{L} = %0.0f nb^{-1}, #sqrt{s} = 2.76 TeV' % (lumi)
                 )
     canvas.Update()
 

@@ -8,7 +8,7 @@ def createTree(fnames, altTrue = {}, cut = ''):
     data = None
     line = 0
     for fname in fnames:
-        print 'opening',fname
+        # print 'opening',fname
         fin = open(fname, 'r')
         for currLine in fin:
             var = False
@@ -74,7 +74,7 @@ def createTree(fnames, altTrue = {}, cut = ''):
             else:
                 print 'rejecting event',line,':',cols
             line += 1
-        print 'completed',fname
+        # print 'completed',fname
 
     #data.Print()
     return data.CopyTree(cut)

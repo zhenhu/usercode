@@ -17,17 +17,17 @@ gROOT.ProcessLine('.L buildSimPdf.cc+')
 gROOT.ProcessLine('.L hiToys.cc+')
 
 from ROOT import readData,computeRatio,computeRatioError,buildPdf,\
-     mmin,mmax,\
      genSameSignDatasets,genOppositeSignBackground,genOppositeSignSignal,\
      RooWorkspace,RooFit,TCanvas,kRed,kGreen,kDashed,buildSimPdf,RooArgSet,\
      RooRealVar,RooMsgService,Long
 
 RooMsgService.instance().setGlobalKillBelow(RooFit.WARNING)
 
-hidatafile = 'data/dimuonTree_181912-182609.root'
+hidatafile = 'data/dimuonTree_150mub.root'
+# hidatafile = 'data/dimuonTree_181912-182609.root'
 ppdatafile = 'data/dimuonTree_2011_pp.root'
 
-cuts = '(muPlusPt > %0.1f) && (muMinusPt > %0.1f) && (abs(upsRapidity)<2.4)' \
+cuts = '(muPlusPt > %0.1f) && (muMinusPt > %0.1f) && (abs(upsRapidity)<2.4) && (vProb > 0.05)' \
        % (opts.pt, opts.pt)
 simparamfile = opts.paramfile
 useKeys = opts.keys
@@ -36,8 +36,8 @@ ws = RooWorkspace("ws","ws")
 
 readData(ws, hidatafile, ppdatafile, cuts)
 
-buildPdf(ws, True, useKeys)
-buildPdf(ws, False, useKeys)
+buildPdf(ws, False, 1, True)
+buildPdf(ws, True, 0, True)
 simPdf = buildSimPdf(ws, ws.cat('dataCat'))
 
 pars = simPdf.getParameters(ws.data('data'))
@@ -55,7 +55,11 @@ dataCat = ws.cat('dataCat')
 QQsign = ws.cat('QQsign')
 reducedCols = RooArgSet(dataCat,QQsign)
 
-for signStr in ['ss', 'os']:
+dsToGen = ['os']
+if useKeys:
+    dsToGen.insert(0, 'ss')
+
+for signStr in dsToGen:
     for dataStr in ['hi', 'pp']:
         theCut = '(dataCat == dataCat::%s)' % (dataStr)
         if (signStr == 'ss'):
@@ -74,6 +78,8 @@ toyData = ws.data('data').emptyClone()
 Npp_bkg = Long(ws.var('nbkg_pp').getVal() + 0.5)
 Nhi_bkg = Long(ws.var('nbkg_hi').getVal() + 0.5)
 
+ws.Print()
+
 if useKeys:
     toyData.append(genSameSignDatasets(ws))
 
@@ -83,17 +89,16 @@ toyData.append(genOppositeSignSignal(ws, int(Nhi_tot-Nhi_bkg), int(Npp_tot-Npp_b
 toyData.Print()
 
 wsToy = RooWorkspace("wsToy", "wsToy")
+wsToyNull = RooWorkspace("wsToyNull", "wsToyNull")
 getattr(wsToy, 'import')(toyData)
+getattr(wsToyNull, 'import')(toyData)
 
-buildPdf(wsToy, True, useKeys)
-buildPdf(wsToy, False, useKeys)
+buildPdf(wsToy, False, 1, True)
+buildPdf(wsToy, True, 0, True)
 
 simPdf = buildSimPdf(wsToy, wsToy.cat('dataCat'))
 pars2 = simPdf.getParameters(wsToy.data('data'))
 pars2.readFromFile(simparamfile)
-
-pars2.setRealValue("f23_hi", pars2.getRealValue("f23_pp"));
-pars2.setRealValue("f2_hi", pars2.getRealValue("f2_pp"));
 
 data = wsToy.data('data').reduce('(QQsign==QQsign::PlusMinus)')
 
@@ -166,27 +171,3 @@ mf_pp.Draw()
 ppcan.Update()
 
 fr.Print('v')
-devError = computeRatioError(wsToy.var('f23_hi'), wsToy.var('f23_pp'),
-                             fr.correlation('f23_hi', 'f23_pp'))
-print
-print 'double ratios (hi/pp)'
-print '---------------------'
-print '(2S+3S)/1S : %0.3f +/- %0.3f' % (computeRatio(wsToy.var('f23_hi'),
-                                                     wsToy.var('f23_pp')),
-                                        devError)
-print '%s : %0.3f +/- %0.3f' % (wsToy.var('f2_pp').GetTitle(),
-                                computeRatio(wsToy.var('f2_hi'),
-                                             wsToy.var('f2_pp')),
-                                computeRatioError(wsToy.var('f2_hi'),
-                                                  wsToy.var('f2_pp'),
-                                                  fr.correlation('f2_hi', 'f2_pp')))
-print '---------------------'
-print
-
-deviation = 1.0 - computeRatio(wsToy.var('f23_hi'),wsToy.var('f23_pp'))
-print 'back of the envelope significance'
-print '---------------------------------'
-print '(2S+3S)/1S : %0.3f/%0.3f = %0.2f' % (deviation , devError,
-                                            deviation/devError)
-print '---------------------------------'
-print

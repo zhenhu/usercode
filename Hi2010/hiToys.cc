@@ -4,6 +4,7 @@
 #include "RooFitResult.h"
 #include "TCanvas.h"
 #include "RooMsgService.h"
+#include "TRandom3.h"
 
 #include "buildSimPdf.cc"
 
@@ -70,8 +71,6 @@ RooDataSet * genOppositeSignSignal(RooWorkspace& ws, int Nhi, int Npp,
   RooDataSet * osSigData = 
     (RooDataSet *)ws.data("data")->emptyClone("toy_os_Data");
   RooAbsPdf * sig = ws.pdf("sig_pp");
-  RooRealVar * f23_pp = ws.var("f23_pp");
-  RooRealVar * f2_pp = ws.var("f2_pp");
   RooDataSet * protoData;
   int N;
   static TString types[2] = {TString("pp"), TString("hi")};
@@ -81,8 +80,8 @@ RooDataSet * genOppositeSignSignal(RooWorkspace& ws, int Nhi, int Npp,
     if (types[i] == "hi") {
       N = Nhi;
       sig = ws.pdf("sig_hi");
-      ws.var("f23_hi")->setVal(f23_pp->getVal()*x23);
-      ws.var("f2_hi")->setVal(f2_pp->getVal()*x2);
+      ws.var("x2")->setVal(x2);
+      ws.var("x23")->setVal(x23);
     } else {
       N = Npp;
       sig = ws.pdf("sig_pp");
@@ -135,26 +134,34 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
 	    bool useKeys = false,
 	    TString randfname = "", TString systfname = "",
 	    double ppMult = 1.0, unsigned int seed = 0,
-	    double x23 = 1.0, double x2 = 1.0) {
+	    double x23 = 1.0, double x2 = 1.0, double x23err = 0.,
+	    double x2err = 0.) {
   RooWorkspace ws;
-  mmin = 7.0; mmax = 14.0; //linearbg_ = false;
-  TString hidatafile("tardir/data/dimuonTree_181912-182609.root");
-  TString ppdatafile("tardir/data/dimuonTree_2011_pp.root");
+  // double mmin = 7.0, mmax = 14.0; //linearbg_ = false;
+  // TString hidatafile("tardir/data/dimuonTree_150mub.root");
+  // TString ppdatafile("tardir/data/dimuonTree_2011_pp.root");
+  TString hidatafile("root://cmseos:1094//eos/uscms/store/user/andersj/hiTrees/dimuonTree_150mub.root");
+  TString ppdatafile("root://cmseos:1094//eos/uscms/store/user/andersj/hiTrees//dimuonTree_2011_pp.root");
 
-  RooMsgService::instance().setGlobalKillBelow(RooFit::WARNING);
+  RooMsgService::instance().setGlobalKillBelow(RooFit::FATAL);
   RooRandom::randomGenerator()->SetSeed(seed);
 
   TString cuts(TString::Format("(muPlusPt > %0.1f) && (muMinusPt > %0.1f) "
-			       "&& (abs(upsRapidity)<2.4)", ptCut, ptCut));
+			       "&& (abs(upsRapidity)<2.4) && "
+			       "(vProb > 0.05)", ptCut, ptCut));
   readData(ws, hidatafile, ppdatafile, cuts);
   
-  buildPdf(ws, true, useKeys);
-  buildPdf(ws, false, useKeys);
+  buildPdf(ws, false, 1, true);
+  buildPdf(ws, true, 0, true);
 
   RooCategory * dataCat = ws.cat("dataCat");
   RooCategory * QQsign = ws.cat("QQsign");
   RooSimultaneous * simPdf = buildSimPdf(ws, *dataCat);
     
+  //RooRealVar * mass = ws.var("invariantMass");
+  //mass->setRange(mmin, mmax);
+  //mass->Print();
+
   RooArgSet * pars = simPdf->getParameters(ws.data("data"));
   pars->readFromFile(parVals);
 
@@ -224,6 +231,7 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
     }
   }
   
+  std::cout << "opening output file " << outfname << '\n';
   ofstream fout(outfname.Data(), ios_base::out|ios_base::trunc); 
 
   int Npp_bkg(ws.var("nbkg_pp")->getVal() + 0.5);
@@ -234,6 +242,14 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
   RooArgSet * toyPars;
   RooRealVar * par;
   RooFitResult * fr;
+
+  RooDataSet * toyNullData;
+  RooCategory * toyNullCat;
+  RooSimultaneous * simPdfToyNull;
+  RooArgSet * toyNullPars;
+  RooFitResult * nullfr;
+  int tmp_Npp_bkg, tmp_Nhi_bkg;
+  double tmp_x2, tmp_x23;
   for (int i = 0; i < Ntoys; ++i) {
     pars->readFromFile(parVals);
 
@@ -245,12 +261,12 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
     pars->setRealValue("nsig1_pp", pars->getRealValue("nsig1_pp")*ppMult);
     pars->setRealValue("nbkg_pp", pars->getRealValue("nbkg_pp")*ppMult);
 
-    if (systRes) {
-      systRes->randomizePars();
-      pars->setRealValue("alpha", systPars->getRealValue("alpha", 1.6));
-      pars->setRealValue("npow", systPars->getRealValue("npow", 2.3));
-      pars->setRealValue("sigma1", systPars->getRealValue("sigma1", 0.092));
-    }
+    // if (systRes) {
+    //   systRes->randomizePars();
+    //   pars->setRealValue("alpha", systPars->getRealValue("alpha", 1.6));
+    //   pars->setRealValue("npow", systPars->getRealValue("npow", 2.3));
+    //   pars->setRealValue("sigma1", systPars->getRealValue("sigma1", 0.092));
+    // }
 
 //     std::cout << "Generating parameters\n";
 //     pars->Print("v");
@@ -263,20 +279,34 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
       toyData->append(*tmpData);
       delete tmpData;
     }
-    tmpData = genOppositeSignBackground(ws, Nhi_bkg, Npp_bkg);
+
+    tmp_Npp_bkg = Npp_bkg;
+    tmp_Nhi_bkg = Nhi_bkg;
+    if (x23err > 0.)
+      tmp_x23 = RooRandom::randomGenerator()->Gaus(x23, x23err*x23);
+    else
+      tmp_x23 = x23;
+    if (x2err > 0)
+      tmp_x2 = RooRandom::randomGenerator()->Gaus(x2, x2err*x2);
+    else
+      tmp_x2 = x2;
+    tmpData = genOppositeSignBackground(ws, tmp_Nhi_bkg, tmp_Npp_bkg);
     toyData->append(*tmpData);
     delete tmpData;
-    tmpData = genOppositeSignSignal(ws, Nhi_tot-Nhi_bkg, Npp_tot-Npp_bkg,
-				    x23, x2);
+    tmpData = genOppositeSignSignal(ws, Nhi_tot-tmp_Nhi_bkg, 
+				    Npp_tot-tmp_Npp_bkg,
+				    tmp_x23, tmp_x2);
     toyData->append(*tmpData);
     delete tmpData;
 
     RooWorkspace wsToy("wsToy", "wsToy");
+    RooWorkspace wsToyNull("wsToyNull", "wsToyNull");
     wsToy.import(*toyData);
+    wsToyNull.import(*toyData);
     delete toyData;
 
-    buildPdf(wsToy, true, useKeys);
-    buildPdf(wsToy, false, useKeys);
+    buildPdf(wsToy, false, 1, true);
+    buildPdf(wsToy, true, 0, true);
 
     toyCat = wsToy.cat("dataCat");
 
@@ -288,8 +318,8 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
     toyPars->setRealValue("nsig1_pp", 
 			  toyPars->getRealValue("nsig1_pp")*ppMult);
     toyPars->setRealValue("nbkg_pp", toyPars->getRealValue("nbkg_pp")*ppMult);
-    toyPars->setRealValue("f23_hi", toyPars->getRealValue("f23_pp")*x23);
-    toyPars->setRealValue("f2_hi", toyPars->getRealValue("f2_pp")*x2);
+    toyPars->setRealValue("x23", tmp_x23);
+    toyPars->setRealValue("x2", tmp_x2);
 
     RooArgSet truePars;
     toyPars->snapshot(truePars, true);
@@ -303,9 +333,41 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
 			  RooFit::Save(true));
 
 
+
+    buildPdf(wsToyNull, false, 1, true);
+    buildPdf(wsToyNull, true, 0, true);
+
+    toyNullCat = wsToyNull.cat("dataCat");
+
+    simPdfToyNull = buildSimPdf(wsToyNull, *toyNullCat);
+    toyNullPars = simPdfToyNull->getParameters(wsToyNull.data("data"));
+
+
+    toyNullPars->readFromFile(parVals);
+    toyNullPars->setRealValue("nsig1_pp", 
+			      toyNullPars->getRealValue("nsig1_pp")*ppMult);
+    toyNullPars->setRealValue("nbkg_pp", 
+			      toyNullPars->getRealValue("nbkg_pp")*ppMult);
+    toyNullPars->setRealValue("x23", 1.0);
+    toyNullPars->setRealValue("x2", 1.0);
+    wsToyNull.var("x2")->setConstant(true);
+    wsToyNull.var("x23")->setConstant(true);
+
+    toyNullData = 
+      (RooDataSet *)wsToyNull.data("data")->reduce("QQsign==QQsign::PlusMinus");
+
+    nullfr = simPdfToyNull->fitTo(*toyNullData, RooFit::Extended(),
+				  RooFit::Minos(false),
+				  RooFit::PrintLevel((Ntoys==1) ? 1 : -1),
+				  RooFit::Save(true));
+
     fout << "nll " << fr->minNll() << ' '
 	 << "edm " << fr->edm() << ' '
 	 << "covQual " << fr->covQual() << ' ';
+
+    fout << "nll_null " << nullfr->minNll() << ' '
+	 << "edm_null " << nullfr->edm() << ' '
+	 << "covQual_null " << nullfr->covQual() << ' ';
 
     TIter finalPar(fr->floatParsFinal().createIterator());
     while ((par = (RooRealVar *)finalPar())) {
@@ -316,23 +378,14 @@ void hiToys(int Ntoys, TString parVals, TString outfname,
 	   << trueVal << ' ';
     }
     
-    fout << "x23 "
-	 << computeRatio(*(wsToy.var("f23_hi")), *(wsToy.var("f23_pp"))) << ' '
-	 << computeRatioError(*(wsToy.var("f23_hi")), *(wsToy.var("f23_pp")),
-			      fr->correlation("f23_hi", "f23_pp"))
-	 << ' ' << x23 << ' ';
-    fout << "x2 "
-	 << computeRatio(*(wsToy.var("f2_hi")), *(wsToy.var("f2_pp"))) << ' '
-	 << computeRatioError(*(wsToy.var("f2_hi")), *(wsToy.var("f2_pp")),
-			      fr->correlation("f2_hi", "f2_pp"))
-	 << ' ' << x2 << ' ';
-
     fout << '\n';
     delete toyData;
+    delete toyNullData;
     delete toyPars;
+    delete toyNullPars;
     delete fr;
+    delete nullfr;
   }
   delete pars;
 
 }
-
