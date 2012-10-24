@@ -45,7 +45,7 @@
 	g1Ssyst->SetLineWidth(18);
 	g1Ssyst->SetMarkerSize(0);
 	g1Ssyst->Draw("e");
-	
+
 	g->Draw("pe");
 
 	TGraphErrors *g2 = new TGraphErrors(bin,cent,ratio2S,centnoErr,ratio2SstatErr);
@@ -59,7 +59,7 @@
 	g2Ssyst->SetLineWidth(2);
 	g2Ssyst->SetMarkerSize(0);
 	g2Ssyst->Draw("2");
-	
+
 	g2->Draw("pe");
 
 	//MB
@@ -73,14 +73,14 @@
 	float raaMB2S[1]={0.120};
 	float raaMB2SstatErr[1]={0.040};
 	float raaMB2SsystErr[1]={0.018};
-    float raaMB3S[1]={0.033};
-    float raaMB3SstatErr[1]={0.1};//{0.035};
-    float raaMB3SsystErr[1]={0.006};
+	float raaMB3S[1]={0.033};
+	float raaMB3SstatErr[1]={0.1};//{0.035};
+	float raaMB3SsystErr[1]={0.006};
 	float raaMB3Slimit[1]={0.1};
 
 	float raaMB1StotErr[0]=sqrt(pow(raaMB1SstatErr[0],2)+pow(raaMB1SsystErr[0],2));
 	float raaMB2StotErr[0]=sqrt(pow(raaMB2SstatErr[0],2)+pow(raaMB2SsystErr[0],2));
-    float raaMB3StotErr[0]=sqrt(pow(raaMB3SstatErr[0],2)+pow(raaMB3SsystErr[0],2));
+	float raaMB3StotErr[0]=sqrt(pow(raaMB3SstatErr[0],2)+pow(raaMB3SsystErr[0],2));
 
 	// lumi sys
 
@@ -97,56 +97,56 @@
 	lumiY1S->SetFillColor(kRed-9);
 	lumiY1S->Draw("2");
 	/*
-	TGraphErrors *gpp = new TGraphErrors(1,ppx,ppy,ppxEr,ppyErSyst);
-	gpp->SetMarkerSize(0);
-	gpp->SetLineColor(kGray);
-	gpp->SetLineWidth(10);
+	   TGraphErrors *gpp = new TGraphErrors(1,ppx,ppy,ppxEr,ppyErSyst);
+	   gpp->SetMarkerSize(0);
+	   gpp->SetLineColor(kGray);
+	   gpp->SetLineWidth(10);
 	//gpp->Draw("e");
 	TGraphErrors *gpptol = new TGraphErrors(1,ppx,ppy,ppxEr,ppyErtol);
 	gpptol->SetLineWidth(0);
 	gpptol->SetLineColor(kGray);
-    gpptol->SetMarkerColor(kRed);
-    gpptol->SetMarkerStyle(21);
-    gpptol->SetMarkerSize(1.1);
-    //gpptol->Draw("p");
-	*/
+	gpptol->SetMarkerColor(kRed);
+	gpptol->SetMarkerStyle(21);
+	gpptol->SetMarkerSize(1.1);
+	//gpptol->Draw("p");
+	 */
 
 	float Y2Sppx[1]={392};
 	float Y2SppyErSystematic=sqrt(pow(0.06,2)+pow(0.033,2));
 	float Y2SppyErSyst[1]={Y2SppyErSystematic};
 	float Y2SppyErtotal=sqrt(pow(Y2SppyErSystematic,2)+pow(0.202,2));
 	float Y2SppyErtol[1]={0};
-    
+
 	TBox *lumiY2S = new TBox(385.0,0.787,399.0,1.213);
-    lumiY2S->SetFillColor(kGreen-7);
+	lumiY2S->SetFillColor(kGreen-7);
 	lumiY2S->SetFillStyle(0);
 	lumiY2S->SetLineWidth(2);
 	lumiY2S->SetLineColor(kGreen+2);
-    lumiY2S->Draw("2");
-	
+	lumiY2S->Draw("2");
+
 	/*
-	TGraphErrors *Y2Sgpp = new TGraphErrors(1,Y2Sppx,ppy,ppxEr,Y2SppyErSyst);
-    Y2Sgpp->SetMarkerSize(0);
-    Y2Sgpp->SetLineColor(kGray);
-    Y2Sgpp->SetLineWidth(10);
-    //Y2Sgpp->Draw("e");
-    TGraphErrors *Y2Sgpptol = new TGraphErrors(1,Y2Sppx,ppy,ppxEr,Y2SppyErtol);
-    Y2Sgpptol->SetLineWidth(0);
+	   TGraphErrors *Y2Sgpp = new TGraphErrors(1,Y2Sppx,ppy,ppxEr,Y2SppyErSyst);
+	   Y2Sgpp->SetMarkerSize(0);
+	   Y2Sgpp->SetLineColor(kGray);
+	   Y2Sgpp->SetLineWidth(10);
+	//Y2Sgpp->Draw("e");
+	TGraphErrors *Y2Sgpptol = new TGraphErrors(1,Y2Sppx,ppy,ppxEr,Y2SppyErtol);
+	Y2Sgpptol->SetLineWidth(0);
 	Y2Sgpptol->SetLineColor(kGray);
-    Y2Sgpptol->SetMarkerColor(kGreen+2);
-    Y2Sgpptol->SetMarkerStyle(20);
-    Y2Sgpptol->SetMarkerSize(1.1);
-    //Y2Sgpptol->Draw("p");
-	*/
-	
+	Y2Sgpptol->SetMarkerColor(kGreen+2);
+	Y2Sgpptol->SetMarkerStyle(20);
+	Y2Sgpptol->SetMarkerSize(1.1);
+	//Y2Sgpptol->Draw("p");
+	 */
+
 	f4->Draw("same");
 	gPad->RedrawAxis();
 
 	TLatex *l1 = new TLatex(50,1.37,"CMS PbPb  #sqrt{s_{NN}} = 2.76 TeV");
 	l1->SetTextFont(42);
 	l1->SetTextSize(0.05);
-    //TLatex *l1 = new TLatex(25,1.37,"CMS Preliminary, PbPb #sqrt{s_{NN}} = 2.76 TeV");
-    //l1->SetTextSize(0.045);
+	//TLatex *l1 = new TLatex(25,1.37,"CMS Preliminary, PbPb #sqrt{s_{NN}} = 2.76 TeV");
+	//l1->SetTextSize(0.045);
 	l1->Draw();
 
 	TLatex *lumi = new TLatex(240,1.25,"L_{int} = 150 #mub^{-1}");
@@ -172,25 +172,25 @@
 	centrality->DrawLatex(10,0.65,"50-100%");
 
 	TLegend *legend = new TLegend(0.23,0.69,0.52,0.87);
-//    TLegend *legend = new TLegend(0.2,0.69,0.5,0.87);
-    legend->SetFillStyle(0);
+	//    TLegend *legend = new TLegend(0.2,0.69,0.5,0.87);
+	legend->SetFillStyle(0);
 	legend->SetFillColor(0);
-    legend->SetMargin(0.25);
-    legend->SetBorderSize(0);
-    legend->SetTextSize(0.035);
+	legend->SetMargin(0.25);
+	legend->SetBorderSize(0);
+	legend->SetTextSize(0.035);
 	legend->SetTextFont(42);
 	legend->AddEntry(g,"#varUpsilon(1S), stat. unc.","lpe");
 	legend->AddEntry(g1Ssyst, "#varUpsilon(1S), syst. unc.","l");
 	legend->AddEntry(g2, "#varUpsilon(2S), stat. unc.","lpe");
 	legend->AddEntry((TObject*)0, "#varUpsilon(2S), syst. unc.","");
-    legend->Draw();
+	legend->Draw();
 
-    TBox *legY2S = new TBox(60,1.03,84,1.07);
-    legY2S->SetFillColor(kGreen-7);
-    legY2S->SetFillStyle(0);
-    legY2S->SetLineWidth(2);
-    legY2S->SetLineColor(kGreen+2);
-    legY2S->Draw("2");
+	TBox *legY2S = new TBox(60,1.03,84,1.07);
+	legY2S->SetFillColor(kGreen-7);
+	legY2S->SetFillStyle(0);
+	legY2S->SetLineWidth(2);
+	legY2S->SetLineColor(kGreen+2);
+	legY2S->Draw("2");
 
 	//c1->SaveAs("RaaPt4_prelim.gif");
 	//c1->SaveAs("RaaPt4_prelim.pdf");
