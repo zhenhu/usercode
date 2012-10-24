@@ -243,6 +243,12 @@ bool buildPdf(RooWorkspace &ws, bool hi, int bkgdModel = 3, bool TrkRotBkgd = 0)
 			norms.add(RooArgList(*nLikeSign, *nPoly));
 			break;
 
+        case 8 : //use erf * exp to fit the unlike-sign
+            bkgExp.SetName("bkg");
+            pdfs.add(bkgExp);
+            norms.add(nbkg);
+            break;
+
 		default :
 			break;
 	}	

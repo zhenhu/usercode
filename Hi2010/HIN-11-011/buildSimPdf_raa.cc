@@ -28,7 +28,7 @@ float mmin = 7.0, mmax = 14.0;
 TString dirname_ = "";
 TString treeName = "UpsilonTree_allsign";
 /*Only for track rotation*/
-//TString treeTrkRot = "UpsilonTree_trkRot";
+TString treeTrkRot = "UpsilonTree_trkRot";
 
 bool buildPdf(RooWorkspace &ws, bool hi, int bkgdModel = 3, bool TrkRotBkgd = 0) {
 
@@ -375,7 +375,7 @@ bool readData(RooWorkspace &ws, TString HIfilename, TString ppFilename,
 	delete hifile;
 
 /*Only for track rotation*/
-/*	//improt tack rotation data
+	//improt tack rotation data
     TFile * hiTrkRotfile = TFile::Open(HIfilename);
     tree = 0;
     TString dirTree_TrkRot = treeTrkRot;
@@ -393,7 +393,7 @@ bool readData(RooWorkspace &ws, TString HIfilename, TString ppFilename,
     RooDataSet hidata_TrkRot("hidata_TrkRot", "hidata_TrkRot", tree, cols);
     delete tree;
     delete hiTrkRotfile;
-*/
+
 
 	//import pp data
 	TFile * ppfile = TFile::Open(ppFilename);
@@ -418,8 +418,8 @@ bool readData(RooWorkspace &ws, TString HIfilename, TString ppFilename,
 
 	RooDataSet data("data", "data", cols_pp, RooFit::Index(dataCat),
 /*Only for track rotation*/
-//			RooFit::Import("hi", hidata), RooFit::Import("pp", ppdata), RooFit::Import("TrkRot", hidata_TrkRot));
-          RooFit::Import("hi", hidata), RooFit::Import("pp", ppdata));
+			RooFit::Import("hi", hidata), RooFit::Import("pp", ppdata), RooFit::Import("TrkRot", hidata_TrkRot));
+//          RooFit::Import("hi", hidata), RooFit::Import("pp", ppdata));
 	//   data.Print("v");
 	return ws.import(data/*, RooFit::RecycleConflictNodes(), RooFit::Silence()*/);  
 }

@@ -7,11 +7,13 @@ parser.add_option('--pt', dest='pt', default=4, type='float',
                   help='pt to cut at')
 parser.add_option('--params', '-p', default='nomSimFitf2f3.txt', dest='paramfile',
                   help='initial parameters file')
-parser.add_option('--bkgd_PbPb', default=3, dest='bkgd_PbPb',
+parser.add_option('--build', default='buildSimPdf_f2f3.cc', dest='buildfile',
+                  help='.cc file')
+parser.add_option('--bkgd_PbPb', default=3, type='int', dest='bkgd_PbPb',
                   help='select pdf for PbPb background')
-parser.add_option('--bkgd_pp', default=4, dest='bkgd_pp',
+parser.add_option('--bkgd_pp', default=4, type='int', dest='bkgd_pp',
                   help='select pdf for pp background')
-parser.add_option('--trkRot', default=False, dest='trkRot',
+parser.add_option('--trkRot', action='store_true', default=False, dest='trkRot',
                   help='use track rotation for background')
 parser.add_option('-b', action='store_true', default=False, dest='b',
                   help='no x windows')
@@ -19,7 +21,7 @@ parser.add_option('-b', action='store_true', default=False, dest='b',
 
 import pyroot_logon
 from ROOT import gROOT
-gROOT.ProcessLine('.L buildSimPdf_f2f3.cc+')
+gROOT.ProcessLine('.L '+opts.buildfile+'+')
 
 from ROOT import readData,computeRatio,computeRatioError,buildPdf,\
      mmin,mmax,\
@@ -48,7 +50,7 @@ setBkgdpp = opts.bkgd_pp
 trkRotBkgd = opts.trkRot
 
 buildPdf(ws, True, setBkgdPbPb, trkRotBkgd)  # pdf for PbPb
-buildPdf(ws, False, setBkgdpp, trkRotBkgd)   # pdf for pp
+buildPdf(ws, False, setBkgdpp, False)   # pdf for pp
 simPdf = buildSimPdf(ws, ws.cat('dataCat'))
 
 mass = ws.var('invariantMass')
