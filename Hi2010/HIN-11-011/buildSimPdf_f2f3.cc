@@ -107,6 +107,9 @@ bool buildPdf(RooWorkspace &ws, bool hi, int bkgdModel = 3, bool TrkRotBkgd = 0)
 	RooGenericPdf bkgErfExp("bkgLikeSignPdf","bkg",
 			"exp(-@0/@3)*(TMath::Erf((@0-@1)/@2)+1)",
 			RooArgList(*mass, turnOn, width, decay));
+    RooGenericPdf bkgExp("bkgExpPdf","bkg",
+            "exp(-@0/@1)",
+            RooArgList(*mass, decay));
 
 	RooRealVar nbkg("nbkg", "N_{bkg}", 5000., -100., 1e6);
 
