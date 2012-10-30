@@ -17,11 +17,12 @@ pair<double, double> GetAngles_HX( TLorentzVector a,  TLorentzVector b);
 
 float ptcut = 4;
 
-void MakeTree_2011(){
+void MakeTree_2012(){
 	//gROOT->LoadMacro("setTDRStyle_modified.C");
 	//setTDRStyle();
 	TFile *f = TFile::Open("/castor/cern.ch/user/t/tdahms/Jpsi_Histos_181611-183013_150invmub.root");
 	//TFile *f = TFile::Open("/castor/cern.ch/user/t/tdahms/Jpsi_Histos_ppReReco.root");
+	TTree *t = (TTree*)f->Get("myTree");
 	Long64_t nentries = t->GetEntries();
 
 	const int NMAX=100;
