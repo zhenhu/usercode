@@ -1,0 +1,26 @@
+
+RooWorkspace(w) w contents
+
+variables
+---------
+(MX,dummyA,dummyB,mass,widthSys)
+
+p.d.f.s
+-------
+RooGenericPdf::backgrOther[ actualVars=(mass) formula="(TMath::Erf((mass-120.800000)/51.700000)+1)/(mass*mass*mass)" ] = 5.52152e-07
+RooBreitWigner::backgrZ0[ x=mass mean=91.2 width=4.24 ] = 0.216091
+RooGaussian::signal[ x=mass mean=MX sigma=width ] = 0
+
+functions
+--------
+RooProduct::width[ 1.371 * widthSys ] = 1.371
+
+datasets
+--------
+RooDataSet::data_obs(mass)
+
+  1) 0xc4a8920 RooRealVar::     mass = 91.5651  L(15 - 500)  "mass"
+  2) 0xc484060 RooRealVar::   dummyA = 12.7456  L(-9.9e+09 - 9.9e+09)  "dummyA"
+  3) 0xc4438c0 RooRealVar::   dummyB = 1  L(-9.9e+09 - 9.9e+09)  "dummyB"
+  4) 0xc493fd0 RooRealVar::       MX = 150 C  L(-INF - +INF)  "MX"
+  5) 0xc436a50 RooRealVar:: widthSys = 1 C  L(-INF - +INF)  "widthSys"

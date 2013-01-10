@@ -1,0 +1,34 @@
+#-- This card file is input to the "combine" command of the Higgs statistics group
+
+# number of channels
+imax 1
+# number of background types
+jmax 1
+# number of nuisance parameters (sources of systematical uncertainties)
+kmax *
+---------------
+shapes * * workspace.root w:$PROCESS
+---------------
+bin 1
+observation -1
+------------------------------
+bin          1          1
+process      signal     background
+process      0          1
+--------------------------------
+# For background, rate should be predicted number of events passing cuts.
+# For signal, it should be predicted events passing cuts if cross-section is 1 pb. 
+# (Then returned limit will be on signal cross section in pb).
+rate         1         0.5
+--------------------------------
+# This is the relative uncertainty on these parameter PLUS ONE.
+# Uncertainies affecting all signal & background samples will have a number in each column.
+# The name is irrelevant.
+lumi    lnN  1.04       1.04     # uncerainty on lumi
+deltaS  lnN  1.20        -      # uncertainty on signal
+# Warning: Using a large background uncertainty is fine for the observed limit, but
+# results in a wide spread of expected limits, since some toy MC have large background in this case.
+#deltaB  lnU   -       9.999    # uncertainty on background - use lnU for large uncertainty 
+deltaB  lnN   -         1.999    # uncertainty on background 
+# This specifies values of parameters in the fit pdf and their uncertainty.
+alpha   param -0.001  0.00001             # a gaussian, mean = -0.2, sigma = 0.1

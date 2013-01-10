@@ -1,0 +1,9 @@
+Bkg 0.02
+BkgE 0.09
+SigEff 1.0
+SigEffE 0.2
+SigWidth -0.188376 0.041559 -4.04125e-06
+SigWidthE 0.00564885 3.28756e-05 2.27623e-07
+SigWidthSyst 0.0
+Lumi 5082
+LumiErr 0.022

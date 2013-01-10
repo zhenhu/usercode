@@ -1,0 +1,50 @@
+#!/bin/tcsh
+########################################################
+# Copy input .txt files specifying selected mass points
+########################################################
+
+# This is the directory containing the data files provided by the main analysis code is.
+set inputDataDir = "$HOME/text/my_cms_notes/papers/EXO-11-101/trunk/WinterFigs/selection"
+# This is the directory where the data files provided by the main analysis code are to be copied.
+# The name must correspond to that assigned to variable $indir in parseEfficiencyFiles.pl .
+set outputDataDir = "WinterSelection"
+
+#set echo
+
+rm -rf $outputDataDir
+mkdir  $outputDataDir
+
+# Used for limit calculation
+cp -f $inputDataDir/muon_pt33/limits/*     $outputDataDir/
+cp -f $inputDataDir/electron_pt41/limits/* $outputDataDir/
+# Used only for apriori estimate of background normalisation from counting.
+# Loose cuts of two different kinds and no lifetime cuts.
+
+cp -f $inputDataDir/muloose_1_pt33/limits/masses_backgroundMC_muloose_1.txt $outputDataDir/
+
+cp -f $inputDataDir/elecloose_1_pt41/limits/masses_backgroundMC_elecloose_1.txt $outputDataDir/
+
+cp -f $inputDataDir/muloose_2_pt33/limits/masses_backgroundMC_muloose_2.txt $outputDataDir/
+
+cp -f $inputDataDir/elecloose_2_pt41/limits/masses_backgroundMC_elecloose_2.txt $outputDataDir/
+
+gunzip $outputDataDir/masses_backgroundMC_muon_noLifetimeCuts.txt.gz
+
+gunzip $outputDataDir/masses_backgroundMC_electron_noLifetimeCuts.txt.gz
+
+#
+# Copy also file containing estimated mass resolution vs. lifetime.
+cp -f $inputDataDir/massResolutions*.txt  $outputDataDir
+
+#unset echo
+
+echo "Input data to limit setting from main analysis copied to $outputDataDir/"
+echo 'ACTION: Please verify that this is assigned to variable $indir in parseEfficiencyFiles.pl !'
+echo "ACTION: Please also verify that this is quoted in function getDataFile() of SignalSampleInfo.py"
+
+echo " "
+echo "The following mass resolution files were found"
+ls -l $outputDataDir/massResolutions*.txt
+echo "ACTION: Please choose the one you want and rename it to $outputDataDir/massResolutions.txt"
+
+exit

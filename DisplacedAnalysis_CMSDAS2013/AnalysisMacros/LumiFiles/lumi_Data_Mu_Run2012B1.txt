@@ -1,0 +1,3 @@
+Data_Mu_Run2012B1_pat_20121030
+Delivered Lumi : 4672128390.54
+Recorded Lumi : 4672128390.54

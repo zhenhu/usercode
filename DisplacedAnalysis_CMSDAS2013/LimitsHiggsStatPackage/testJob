@@ -1,0 +1,16 @@
+#!/bin/tcsh
+############################################################################################
+# Quickly check limits using Profile Likelihood to test if makeJob.py gave sensible output #
+############################################################################################
+
+set dir = "job/Muons_120_20_Normal/"
+echo "Will calculate upper limit on $dir using profile likelihood"
+
+set olddir = $PWD
+cd $dir
+
+combine -v2 -t 100 -M ProfileLikelihood combine.root
+
+cd $olddir
+
+exit

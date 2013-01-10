@@ -1,0 +1,79 @@
+DUMMY'S (?) GUIDE TO RUNNING SOFTWARE
+
+-Checkout CMSSW
+
+export SCRAM_ARCH=slc5_amd64_gcc462   (optional - SCRAM_ARCH will probably be something like slc5_amd64_gcc434, but CMSSW >= 5 use the newer SCRAM_ARCH)
+cmsrel CMSSW_5_3_5
+cvs co  -r V04-01-09  RecoLuminosity/LumiDB   ( needed for lumi calc - check here to ensure you have the latest version https://twiki.cern.ch/twiki/bin/viewauth/CMS/LumiCalc )
+cd CMSSW_5_3_5/src/
+cmsenv
+
+-Checkout MakePatTuple and SampleFiles software in src
+
+svn co svn+ssh://ejclemen@svn.cern.ch/reps/displacedfermions/trunk/MakePatTuple MakePatTuple
+svn co svn+ssh://ejclemen@svn.cern.ch/reps/displacedfermions/trunk/SampleFiles SampleFiles
+svn co svn+ssh://ejclemen@svn.cern.ch/reps/displacedfermions/trunk/AnalysisMacros AnalysisMacros  # Needed for lumi and pu output - see later
+
+cmsenv
+scramv1 b -j 4
+
+-Edit the crab template file
+
+First make sure you edit SampleFiles/Tools/test/crabTemplate.cfg
+
+This is the template crab file.  Make sure to edit the storage_element and user_remote_dir (and storgae_element if on EOS).  This has been tested to work on EOS at CERN and at RAL.
+Please also make sure the eMail is your email and not someone else's.  Everything else will be edited by the scripts.
+
+-Setup configs etc. for a Data/MC sample
+
+For Data 2012A:
+python MakePatTuple/MakePatTuple/test/run_pat.py SampleFiles/Samples/python/Data_Mu_Run2012A1_cff.py 0
+
+For Drell-Yan MC:
+python MakePatTuple/MakePatTuple/test/run_pat.py SampleFiles/Samples/python/samples/ZYJets50_cff.py 0
+
+Arguments : 
+1) a sample cff file
+2) Whether to auto create & submit crab jobs ( 0 or 1 )
+
+If you auto create & submit, make sure you have crab set up
+
+If you don't auto create & submit, the commands to create & submit will be printed to screen
+
+-Running for several samples
+
+You can use multiRun_pat.py to speed things up:
+
+python MakePatTuple/MakePatTuple/test/multiRun_pat.py SampleFiles/Samples/python/ All 0
+
+Arguments : 
+1) Directory of sample cff files
+2) Which samples to process? All, Data, QCD, Diboson, DY, Signal
+3) Whether to auto create & submit crab jobs ( 0 or 1 )
+
+-After running
+
+After running on the grid, you need to:
+
+1) Produce a list of PAT files and put this in the sample cff for that sample
+2) For data, run crab -report, lumiCalc & pileupCalc
+3) Optionally publish the PAT tuples
+
+The first two can be done with run_postGrid.py :
+
+python MakePatTuple/MakePatTuple/test/run_postGrid.py workdirs/Data_Mu_Run2012B1_pat_20120717/ /store/caf/user/ejclemen/ 1
+
+Argumets:
+
+1) The working directory for your sample
+2) The location of all of your PAT tuples
+3) Whether to publish the PAT tuples or not (0 or 1)
+
+You should see that your sample cff file (in SampleFiles/Sample/python) will be updated with the list of available PAT files.  The list will also be in the workidr (listOfPatFiles.txt)
+
+For data, this will also:
+1) Run crab -report to get the json for lumi and pu calcs
+2) Run lumiCalc2, with recorded option and with either "HLT_L2DoubleMu23_NoVertex_2Cha_Angle2p5_v" or "HLT_DoublePhoton48_HEVT_v" as the trigger (can add others)
+3) Run pileupCalc
+
+The output of lumiCalc2 and pileupCalc is placed in the AnalysisMacro/LumiFiles and AnalysisMacros/PileupFiles/ directory for later.

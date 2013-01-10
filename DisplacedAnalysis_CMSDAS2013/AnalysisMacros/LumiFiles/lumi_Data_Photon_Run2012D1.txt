@@ -1,0 +1,3 @@
+Data_Photon_Run2012D1_pat_20130102
+Delivered Lumi : 6981533947.23
+Recorded Lumi : 6981472868.97
