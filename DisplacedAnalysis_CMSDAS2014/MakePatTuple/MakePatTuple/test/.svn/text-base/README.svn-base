@@ -1,0 +1,59 @@
+Details for 2012 software development - MakePatTuple Step
+
+This has been developed in CMSSW_5_2_5 so far.
+
+DESCRIPTION OF FILES
+
+MakePatTuple/MakePatTuple/test/makePATtuple_cfg.py
+
+This is the CMSSW config file.  Configures the hlt filter selection and the PATification
+
+MakePatTuple/MakePatTuple/test/run_pat.py
+
+This is the python script which runs makePATtuple_cfg.py.  You need to pass it a sample cff file as an argument and whether to auto create and submit crab jobs (0 or 1).
+This performs some simple checks e.g. the sample cff file has a dataset defined in it, the "correct" CMSSW version is used etc.  Sets up the CMSSW config file so that it reads the correct sample cff file.
+
+MakePatTuple/MakePatTuple/test/multiRun_pat.py
+
+This script is useful for mass running.  Will look in the provided directory and run run_pat over each sample cff file in that directory.
+Arguments are (1) Directory of sample cff files (2) Which samples to process? All, DataE, DataMu, QCDE, QCDMu, Diboson, DY, Signal (3) Whether to auto create & submit crab jobs ( 0 or 1 )
+Will also output the crab commands to create and submit jobs to screen
+
+MakePatTuple/MakePatTuple/test/crabTemplate.cfg
+
+This is the template crab file for the PAT step.  More details below.
+
+MakePatTuple/MakePatTuple/test/run_postGrid.py
+
+This runs crab -report and lumiCalc & pileupCalc (for data samples). Also produces a list of PAT files for the sample cff file for the next step.
+Also optionally publishes the PAT tuples and updates the sample cff file with the name of the sample in DBS
+
+MakePatTuple/MakePatTuple/scripts/qsub_MakePatTuple_mc.sh
+
+This is a script for submitting the PATtupler to condor on lpc (necessary if you're running on the
+private samples which can't be run through crab). In order to run on condor:
+
+1) Edit qrun_MakePatTuple_mc.sh to contain your working path and (if necessary) the correct CMSSW release.
+2) source rebuild_tarball to make the condor tarball.
+3) Then run the script as ./qsub_MakePatTuple_mc.sh 2B2Mu_MH_1000_MFF_350_CTau350_8TeV 1 10, where the
+first is the sample name and the second and third arguments are the first and last segment number to run
+(each segment is 10k events). You will need a filelist in
+MakePatTuple/MakePatTuple/python/filelist_(SAMPLENAME)_cfi.py with the file names for the sample.
+
+Your output will end up in /uscmst1b_scratch/lpc1/3DayLifetime/${USER}/Local/MakePatTuple. Make sure to
+move it out before the three days are up!
+
+SampleFiles/Samples/python/
+
+This directory contains the sample cff files.  These contain all the necessary info on each sample.
+
+SampleFiles/Tools/python/AnalysisSample.py
+
+Contains a set of tools for running the PAT stage.  The class AnalysisSample is defined here, which contains all useful info about the sample and general working directories for this run.
+
+The function create_work_dir will try to set up a suitable working directory - it worked for me, but other people should check it works for them too i.e. outside of RAL.
+
+setupCrabConfig will read a template crab config file (crabTempalte.cfg in the test directory) and edit it with the corresponding info for the particular sample you are running on.
+The template crab config file will have all the information regarding publishing, storage, scheduler etc., so will only need to be changed here once by the user (you) rather than every time in run_crab
+
+sample_cff_code is used to read in and interpret the sample cff file

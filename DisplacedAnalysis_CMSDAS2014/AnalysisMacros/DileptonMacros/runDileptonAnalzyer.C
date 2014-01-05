@@ -1,0 +1,3 @@
+{
+  fullAnalyzer(a);
+}

@@ -1,0 +1,45 @@
+import FWCore.ParameterSet.Config as cms
+
+maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
+readFiles = cms.untracked.vstring()
+secFiles = cms.untracked.vstring()
+source = cms.Source ("PoolSource",fileNames = readFiles, secondaryFileNames = secFiles)
+readFiles.extend( [
+           '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/126C625E-DC9D-E011-A3F9-00266CFAEBF8.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/5673D7A7-F09D-E011-BD35-0015178C69D4.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/4E7640A2-EC9D-E011-937E-00266CF9B630.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/1A64B47F-DC9D-E011-B27C-00266CFACC38.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/1664B176-DD9D-E011-B007-00A0D1EE8C70.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/2436062E-DD9D-E011-8A81-00266CFAE6B0.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/2245514E-DD9D-E011-9E81-00266CF9AB88.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/3C1A7046-319E-E011-A76D-00266CF9BE6C.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/34B7598F-EC9D-E011-8B9C-0015179ECD3C.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/5AF8B430-F79D-E011-8A25-0024E876A814.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/58D8F617-EB9D-E011-8B65-00266CFAC6D0.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/5ED2A9C5-F39D-E011-80AC-0024E8769B94.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/5C9067CC-F59D-E011-902A-0024E86E8D66.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/80BCC9D6-ED9D-E011-885F-00266CF9C0AC.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/6AE7E8CC-F09D-E011-A11E-00151796C04C.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/CA8BD9B4-DC9D-E011-87B6-00266CFAE268.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/C4926068-DD9D-E011-8E23-00A0D1EEDFEC.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/D67624EA-F69D-E011-980D-0024E86E8D66.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/D25BA2A3-F29D-E011-86A2-0015178C69F8.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/8A8B3867-ED9D-E011-AA4B-00266CF25D18.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/8623FE77-DD9D-E011-98D0-00266CF9C1EC.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/A04BC23E-DE9D-E011-9652-00151796C170.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/9EBF81C1-E39D-E011-A6AA-00266CFAC810.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/B0156A59-DD9D-E011-9DF1-00266CF25C20.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/AE033FC1-DC9D-E011-A9E3-00266CFAE890.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/DC776ED7-EF9D-E011-8FF8-00A0D1EEDDA8.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/DAF68361-EC9D-E011-A4E1-00A0D1EEDCEC.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/E6436AB2-DE9D-E011-840F-0015178C4920.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/DE77CBA9-DC9D-E011-ADA2-00266CFAE6B0.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/E6C70FB9-E09D-E011-81D3-0015178C4978.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/E68939C6-DD9D-E011-BD92-00266CF9AD34.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/FE07CD5E-EE9D-E011-A8FC-00A0D1EE95FC.root',
+                  '/store/mc/Summer11/HTo2LongLivedTo4L_MH-400_MLL-05_CTau-1_7TeV-pythia6/GEN-SIM-RECODEBUG/PU_S4_START42_V11-v2/0000/ECD33DA3-ED9D-E011-BEAB-00266CF9B86C.root' ] );
+
+
+secFiles.extend( [
+                   ] )
+

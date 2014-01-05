@@ -1,0 +1,5 @@
+cd ../../..
+mkdir -p archives
+rm -f archives/MakePatTuple.tgz
+tar vzcf archives/MakePatTuple.tgz --exclude "*.svn*" MakePatTuple
+cd MakePatTuple/MakePatTuple/scripts

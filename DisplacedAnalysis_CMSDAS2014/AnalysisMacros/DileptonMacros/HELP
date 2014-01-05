@@ -1,0 +1,76 @@
+Dilepton Analysis Macros
+
+
+-- To do first
+
+updateWeight.py - Updates the cross sections in FilesAndWeights.h for each sample.  Only need to run this if you've changed the weights in a sample cff file and want to synchronise.
+
+combinePileupAndLumiFiles.py - Depending which data periods you are running on i.e. uncommented in FilesAndWeights, will combine the pileup files together (for pu reweighting) and calculate the total lumi, which gets read in by makePlots for normalization of MC background and plot decoration.
+
+The above are in the commonMacros directory.  Check that the directories are pointing to the correct places.
+
+--How to run analysis code
+
+From DileptonMacros directory, compile :
+
+$ make
+
+To run :
+
+./main <analysisType> <samplesGroup>
+
+For the <analysisType>, look in CommonMacros/analysisType.h for the enum defintion.  Pass in the int corresponding to the analysis you want to analyze.
+e.g. 0 = 2eTrack, 1 = 2muTrack etc.
+
+<samplesGroup> is a group of sample you want to analyze.  Yhere's a few combinations:
+all, Diboson, Signal, DYJets, QCD, Data, Data22Jan
+
+This runs fullAnalyzer.C, which loops over the files in CommonMacros/FilesAndWeights.h and runs DileptonAnalyzer.C over them.
+
+
+
+-- Combine Samples
+
+After running the above, now combine different groups of samples to be plotted together e.g. QCD, DYJets
+
+python runCombination.py <analysisType>
+
+
+-- Make Plots
+
+Finally, make the plots
+
+python runMakePlots.py <analysisType>
+
+
+--Explanation of code
+
+FilesAndWeights.h - A list (map) of samples to process and their cross sections for weighting
+
+analysisType.h - an enum describing which type of analysis you are running
+
+GetCategory.h - Works out which group a particular sample belongs to e.g. QCD, DYJets, Data
+
+MergeFiles.h - The details of how different files are combined together by fullCombination.C
+
+PileupReweighting.h/C - The details of how PU reweighting is done.  This is set up in treeAnalyzerBase.  To get the pu weight for a given event you can then do e.g. puweights_.weight( # true vertices in event ).
+
+treeAnalyzerBase.h - Base class which initialize a tree to be read.  Works out weight of sample (cross section / totalProcessedEvents, no pu or lumi taken into account here).  Initialize pu weights.
+
+-DileptonMacros
+
+DileptonAnalyzer.h/C - Main analysis code.  Inherits from treeAnalyzerBase.  Loop() is the main function which loops over each event (and then each candidate in the event).
+
+DileptonAnalysisCuts.h/C - Class to handle analysis cuts.  Then every macro will have the same set of cuts.  In the .C, each set of cuts is defined depending on which analysisType you are running and which analysisCuts (see .h) you would like to apply.
+In DileptonAnalyzer.h, a number of DileptonAnalysisCuts objects are defined, one for each type of cuts (final, inverted lifetime, different loose selection etc.).
+In the .C, I define a DileptonAnalysisCuts::PassedWhichCuts object, which is a list of bools one for each cut.  The method whichCuts( TreeDipseudoLeptonCandidate & candidate ) returns one of these objects with the info on which cuts this candidate passed/failed.
+The method passAllCuts(DileptonAnalysisCuts::PassedWhichCuts cuts) then tells you whether a candidate has passed all cuts.
+It's fairly straightforward to make n-1 plots with this class.
+
+Histograms.h/C - Class to handle hisotgrams.  Doesn't do anything special.  It just made the DileptonAnalyzer code cleaner and shorter.
+
+-pythonScripts
+
+There are several short python scripts in DileptonMacros/pythonScripts.  These perform a number of tasks e.g. produce signal efficiencies, misalignment plots, produce the cut flow tables, a few isolation plots etc.
+They should be quite simple. The getSignalEfficiencies/Acceptances/EfficiencyOverAcceptance.py are a bit more involved, but inherit most of their methods from parseTextFileTools.py.
+commonMethods.py contain a few simple functions to add decorations to plots etc.
