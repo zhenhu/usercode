@@ -1908,9 +1908,9 @@ void DileptonAnalyzer::fillPlots( const TreeDipseudoLeptonCandidate &cand, TreeL
 
   if (  cuts.passAllCuts( cutsTemp )  ) {
     histMap["nMissingHitsAfterVertex"]->Fill( cand.missedLayersAfterVertexL + cand.missedLayersAfterVertexH, eventWeight_ );
-    cout << endl << cand.missedLayersAfterVertexL + cand.missedLayersAfterVertexH << endl;
-    cout << cand.leptonIsoL/leptonL.pt << " " << cand.leptonIsoH/leptonH.pt << endl;
-    cout << cand.leptonIsoL4/leptonL.pt << " " << cand.leptonIsoH4/leptonH.pt << endl;
+//    cout << endl << cand.missedLayersAfterVertexL + cand.missedLayersAfterVertexH << endl;
+//    cout << cand.leptonIsoL/leptonL.pt << " " << cand.leptonIsoH/leptonH.pt << endl;
+//    cout << cand.leptonIsoL4/leptonL.pt << " " << cand.leptonIsoH4/leptonH.pt << endl;
 
     histMap["minMissingHitsAfterVertex"]->Fill( min(cand.missedLayersAfterVertexL,  cand.missedLayersAfterVertexH), eventWeight_ );
     histMap["maxMissingHitsAfterVertex"]->Fill( max(cand.missedLayersAfterVertexL, cand.missedLayersAfterVertexH), eventWeight_ );
