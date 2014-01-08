@@ -1,0 +1,37 @@
+#-- This card file is input to the "combine" command of the Higgs statistics group
+#-- Parameters whose names end in TTT are replaced by makeJob.py
+
+# number of channels
+imax 1
+# number of background types
+jmax 2
+# number of nuisance parameters (sources of systematical uncertainties)
+kmax *
+---------------
+shapes * * workspace.root w:$PROCESS
+---------------
+bin X
+observation -1
+------------------------------
+bin          X          X          X
+process      signal     backgrZ0   backgrOther
+process      0          1          2
+--------------------------------
+# For background, rate should be predicted number of events passing cuts.
+# For signal, it should be predicted events passing cuts if cross-section is 1 pb. 
+# (Then returned limit will be on signal cross section in pb).
+rate         1         bkgZ0TTT    bkgOtherTTT
+--------------------------------
+# This is the relative uncertainty on these parameter PLUS ONE.
+# Uncertainies affecting all signal & background samples will have a number in each column.
+# The name is irrelevant.
+lumi          lnN                  1.026                 -                   -          # uncerainty on lumi
+deltaS        lnN             effi_relerrTTT             -                   -          # uncertainty on signal efficiency
+# Use these two if the backgrounds are assumed uncorrelated
+deltaB_Z0     lnN                   -              bkgZ0_relerrTTT           -          # uncertainty on Z0 background 
+deltaB_Other  bkgOther_errTypeTTT   -                    -           bkgOther_relerrTTT  # uncertainty on other background 
+# Or use this one if the backgrounds are assumed fully correlatde
+#deltaB+All    bkgOther_errTypeTTT   -             bkgZ0_relerrTTT    bkgOther_relerrTTT  # Uncertainty on all backgrounds.
+#--- This specifies nuisance parameters with gaussian uncertainties
+# Relative uncertainty on mass resonance width (central value should be 1) - commented out to save CPU
+#widthSys   param  1.0  widthSysTTT

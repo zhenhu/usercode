@@ -1,0 +1,19 @@
+This repository contains the code for the limit calculation using the Bayesian limits based on roostats_cl95.
+
+Please note that the background tools that used to also live in this directory have now been moved to
+displacedfermions/trunk/BackgroundTools.
+
+For full documentation, please consult DOCS.
+
+Prior to its current location, it lived in Andrzej's svn repository in
+https://svn.cern.ch/reps/zuranski/LLlimits.
+
+A few revisions of note in that repository:
+
+r58 was the final version which contains only the winter scripts remaining; this was the version which was ported
+to the current repository.
+
+r54 is the "green light" version which contains the summer and winter scripts for the version green-lighted by the
+ARC.
+
+r44 is the "frozen" version prior to (winter) preapproval.

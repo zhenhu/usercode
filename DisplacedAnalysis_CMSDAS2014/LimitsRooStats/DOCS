@@ -1,0 +1,169 @@
+This directory contains all of the necessary code and files for running the Bayesian limits for the displaced
+lepton analysis. It also includes code for the background estimation (see further down for documentation on that).
+
+These scripts are currently being updated from the 2011 to the 2012 versions, so you may notice some
+inconsistencies as the change happens. However, all scripts which are not expected to be used in the 2012
+analysis have been obsoleted and removed. They are still available in branches/EXO-11-101.
+
+Here's a quick overview of how to use the contents.
+
+==== Table of Contents ====
+** Running the limit calculation
+** Data files
+** Background estimation
+** Updating efficiencies
+** Updating resolutions
+** Miscellaneous (and outdated) scripts
+
+==== Running the limit calculation ====
+
+0) Getting set up -- to set up your environment, use either setup.csh or setup.sh as appropriate. For
+some reason, setup.csh doesn't work properly if sourced; just cat it and paste the commands directly into
+your terminal window.
+
+1) Input data -- most of the scripts rely on the files in WinterSelection/ for the input data. These
+files are generated from the WinterFigs/selection directory in the svn repository for the note. Contained
+within WinterSelection/ is a simple Perl script, regenerate_selection_files.pl, which will copy all of
+the files from the repository directory. Just change the repository location at the top of
+regenerate_selection_files.pl and run it to repopulate WinterSelection/ whenever necessary.
+
+2) Making the limits -- there are two parallel paths one can use to run the limits:
+
+- To run the limits on the number of events as a function of mass, use mainMass.py. The syntax is simply
+  python mainMass.py Mass LeptonType
+where LeptonType should be either "Electron41" or "Muon33" (other pt cuts are in principle supported but
+the support may not be complete in places) and Mass is simply the X boson mass.
+
+The resulting output file will simply be named MASS.txt; you should move it into some final directory
+when it's done. This is a very fast process, usually taking only a few seconds to run, but of course for
+a lot of masses this time can add up, so there's also a simple script submitMass.py, which you can run
+with
+  python submitMass.py LeptonType
+which will submit jobs for masses from 15 to 500 at 1 GeV/c^2 intervals.
+
+- To run the limits on the cross-section times branching ratio as a function of lifetime, use
+mainSigmaBayesian.py. The syntax is a little more complex:
+  python mainSigmaBayesian.py Mass LeptonType Eff EffErr [FileName]
+
+Mass and LeptonType are as before. Eff is the total efficiency, which normally is given by
+2*e1*br*(1-br) + 2*e2*br^2, and EffErr should be the error on the above. If FileName is blank, then the
+output file will just be MASS.txt as before; if specified, the resulting file will be placed in
+LeptonTypeBayesianWinterFreeze/FileName.txt (this can be changed in mainSigmaBayesian.py).
+
+Again, there exists a helper script to run all of the jobs. This is currently submitLifetimeJobs_41_33.pl. This
+script has all of the efficiencies and their errors stored within (for details on how to update these numbers, see
+below), so just run ./submitLifetimeJobs_41_33.pl and it will run everything. (This does not include the mH=125
+points, but ./submitLifetimeJobs_41_33_125.pl exists for the mH=125 points.)
+
+These scripts use GetWorkspaceMass.py and GetWorkspaceSigma.py to set up the RooFit workspace, and
+GetLimitBayesian.py to get the final Bayesian limit. roostats_cl95.C is the standard roostats_cl95 script
+with an additional hack to support 3-sigma limits as well to compute the expected limits.
+
+3) Plotting the limits
+
+PlotLimitsMass.py will plot the limits on the number of events as a function of mass. You can run it
+simply with python PlotLimitsMass.py LeptonType. The input directory is specified inside the file at the
+top.
+
+Similarly, PlotLimitsLifetimeExpected.py will plot the limits on the cross-section as a function of
+lifetime. This takes two arguments: python PlotLimitsLifetimeExpected.py LeptonType HiggsMass. Again, you
+can change the input directory in the file.
+
+These scripts also use tdrstyle.C to set up the TDR style as appropriate for the plots.
+
+==== Data files ===
+
+The various parameters used in the fits are, unfortunately, scattered in several different places (some effort to
+consolidate everything is planned, but has not yet been carried out). Specifically:
+
+* The "data files" (dataFileElectron41 and dataFileMuon33) contain the background estimate and the uncertainty on
+  that estimate, the luminosity and its uncertainty, and the signal resolution and its uncertainty, expressed as a
+  series of polynomial coefficients -- that is, SigWidth a b c means that the signal resolution is a + b*mx +
+  c*mx^2. Note that the "SigEff" and "SigEffE" (signal efficiency) defined in this file is not actually used -- in
+  the case of the limits on number of events, it is of course not relevant, and for the limits on the
+  cross-section, it is overridden by the values passed on the command line to mainSigmaBayesian.py, as described
+  above.
+* The background shape function and the parameters of the fit are defined directly in GetWorkspaceSigma.py and
+  GetWorkspaceMass.py (unfortunately the code is duplicated in the two files) -- look for the definition of
+  bkgPdf.
+* The signal efficiencies for the different mH/mX/ctau samples are stored in the submission script
+  submitLifetimeJobs_41_33.pl as described above. For information on how to update these, see below.
+
+==== Background estimation ====
+
+These scripts have been migrated to displacedfermions/trunk/BackgroundTools. Please see the documentation in that
+directory.
+
+==== Updating efficiencies ====
+
+parseEfficiencyFiles.pl is a rather complex Perl script to take the efficiency files prepared by the selection code
+and transform them into formats more suitable for the rest of the analysis. Specifically, it will take files of the
+form efficiencies_di{electron,muon}{1,2}[_ctaufact_CTAUFACTOR][_{pileup,statistical}_uncertainty.txt] and output
+the efficiencies.
+
+Things to know about parseEfficiencyFiles.pl:
+ * The input files will be read from the WinterSelection directory, so make sure those are up-to-date before
+running.
+ * The pileup uncertainty is treated specially, since currently the script only calculates the pileup uncertainty
+for the nominal lifetime. The default is to use this as a relative uncertainty when applying it to other lifetimes
+($useRelativePileupUncertainty == 1); if zero, then this will be treated as an absolute uncertainty instead. You
+can also disable to the pileup uncertainty entirely by setting $usePileupUncertainty = 0.
+ * The tracking systematic (as a relative uncertainty) is specified by $trackingsys_rel.
+ * The ctau factors present in the file are specified in the ctaufactsIn array, while the ctau factors to generate
+the final efficiency numbers are specified in the ctaufactsOut array (as these two may not be the same).
+ * Similarly, the %masses hash stores the various H and X masses present in the input files, while %used_masses
+stores the H and X masses for which we are interested in generating output.
+ * %nominal_lifetimes stores the nominal ctau values (in cm) for the different samples.
+ * %nlo_systematic is an additional systematic for the NLO uncertainty for the mH=125 samples; it is also expressed
+in relative terms.
+ * $br is the nominal "small" branching ratio (set to 0.01) for computing the total efficiency given the e1 and e2
+factors.
+
+Once everything is set up properly, simply run. The program produces a rather large amount of output in a truly
+impressive variety of languages, each destined for a different source. In each case, the output is designed to
+simply be copied and pasted into the appropriate script:
+
+The first set (the C code beginning with "Results by lifetime") is designed for making fits in ROOT using, for
+instance, makeEfficiencyFitsLifetime.C. The second set of numbers (the Perl code beginning with "Effective
+efficiency values") is designed to be used in the submission scripts such as submitLifetimeJobs_41_33.pl; merely
+cut and paste the appropriate values into the script. The third set of numbers (the Python code beginning with
+"Results by lifetime for Ian") is designed to go into Ian's CLs limit scripts. Finally, the last chunk of output
+(beginning with "Latex table of efficiencies") is a LaTeX section designed to be put into the note with the final
+efficiency values.
+
+==== Updating resolutions ====
+
+makeWidthFitsResolution.C is a simple script to fit the mass resolutions and errors as a function of mass. It takes
+massResolutions, the text file prepared by Andrzej, and fits curves to the resulting data. It can be run in two
+modes: in the default (useAllResolutions == false), only the resolution at the nominal lifetime (ctaufact == 1)
+will be used for the fits. If useAllResolutions == true, then the resolution is determined by the mean of all
+values and the error by the spread of those values.
+
+You can see the expected format of the massResolutions file in the version currently in svn. Note that if the
+number of masses or lifetimes present in this file change,s you will need to change nmass or nlife respectively.
+
+Once the new fits have been performed, enter them into the appropriate data files (e.g. dataFileElectron41).
+
+==== Miscellaneous scripts ====
+
+tdrstyle.C is a copy of the official TDR style script for ROOT.
+
+roostats_cl95.C is a copy of the RooStats_cl95 script for computing limits. For more documentation, see
+https://twiki.cern.ch/twiki/bin/viewauth/CMS/RooStatsCl95
+The version here has been hacked slightly to return +/-3 sigma limits in addition to the default (which is only
++/-1 and +/-2 sigma).
+
+getEventTotals.pl is a simple utility script for computing the total number of events with their uncertainty in a
+text file. Just provide the name of the file on the command line. This simple method has been largely superseded by
+Ian's more sophisticated way of handling the uncertainty on the background estimation (see Appendix D of AN-11-486
+for further information).
+
+The following scripts have been removed (in the unlikely event you still need them, they can be found in
+branches/EXO-11-101).
+makeBackgroundFitsLoose.C
+fitBackgroundPDFBWBare.C
+makeBackgroundCDF.C
+makeLouvainPlot.C
+makeEfficiencyFitsLifetime.C
+makeEfficiencyFitsLifetime2D.C
+makeWidthFits.C

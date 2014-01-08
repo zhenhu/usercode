@@ -1,0 +1,37 @@
+#-- This card file is input to the "combine" command of the Higgs statistics group
+#-- Parameters whose names end in TTT are replaced by makeJobCounting.py
+
+# number of channels
+imax 1
+# number of background types
+jmax 1
+# number of nuisance parameters (sources of systematical uncertainties)
+kmax *
+---------------
+bin X
+observation numDataCandsTTT
+------------------------------
+bin          X          X         
+process      signal     backgrOther
+process      0          1
+--------------------------------
+# For background, rate should be predicted number of events passing cuts.
+# For signal, it should be predicted events passing cuts if cross-section is 1 pb. 
+# (Then returned limit will be on signal cross section in pb).
+rate         1          bkgOtherTTT
+--------------------------------
+# This is the relative uncertainty on these parameter PLUS ONE.
+# Uncertainies affecting all signal & background samples will have a number in each column.
+# The name is irrelevant.
+lumi          lnN                        1.026                   -                 # uncertainty on lumi 
+deltaS        lnN                     effi_relerrTTT             -                 # total uncertainty on signal efficiency
+# Background systematic is from misalignment. Will be handled by running limit calculation twice
+# with different alignment corrections.
+deltaB_Other  lnN                         -              bkgOther_relerrTTT        # systematic uncertainty on background 
+# The two parameters here are N and alpha, where N is the number of candidates seen in the control region
+# and alpha is the ratio of the number of background candidates expected in the signal region divided
+# by the control region.
+deltaB_Measure    gmN      bkgOtherTTT      -      1.  
+
+#--- This specifies nuisance parameters with gaussian uncertainties
+#junkParam   param  1.0  widthSysTTT

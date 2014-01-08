@@ -1,0 +1,61 @@
+#!/bin/tcsh -e
+########################################################
+# Copy input .txt files specifying selected mass points
+########################################################
+
+# This is the SVN directory containing the data files provided by the main analysis code is.
+set inputDataSvnDir = "svn+ssh://svn.cern.ch/reps/displacedfermions/trunk/AnalysisMacros/DileptonMacros/"
+#
+# This is the linux directory where the data files provided by the main analysis code are to be copied.
+# The name must correspond to that assigned to variable $indir in parseEfficiencyFiles2012.pl .
+set outputDataDir = "InputData2012/"
+
+#set echo
+
+# Can do this to be very sure svn co worked.
+#rm -rf $outputDataDir
+
+# Used for limit calculation
+
+# you can find in https://svnweb.cern.ch/cern/wsvn/displacedfermions/trunk/AnalysisMacros/DileptonMacros/
+svn co --depth=files $inputDataSvnDir/EfficiencyFiles/     $outputDataDir/EfficiencyFiles/
+svn co --depth=files $inputDataSvnDir/EfficiencyFiles/efficiencyOverAcceptance/     $outputDataDir/EfficiencyFiles/efficiencyOverAcceptance/
+svn co --depth=files $inputDataSvnDir/SignalAcceptances/   $outputDataDir/SignalAcceptances/
+
+# Contain .txt files with masses of selected candidates.
+svn co $inputDataSvnDir/MassFiles/   $outputDataDir/MassFiles/
+# Data split across several .txt files from different running periods, so combine into one file.
+cat $outputDataDir/MassFiles/muons/Data_Mu_Run*22Jan*_coll_corrected_*.txt        >! $outputDataDir/MassFiles/muons/Data_Mu_All_coll.txt 
+cat $outputDataDir/MassFiles/electrons/Data_Photon_Run*22Jan_coll_corrected_*.txt >! $outputDataDir/MassFiles/electrons/Data_Photon_All_coll.txt 
+
+# Used only for apriori estimate of background normalisation from counting.
+# Also used to fit mass PDF to background or data with no lifetime cuts.
+# Loose cuts of two different kinds and no lifetime cuts.
+# Contain also .txt files with masses of selected candidates with loose/no lifetime cuts.
+svn co --depth=files $inputDataSvnDir/BackgroundStudiesFiles/   $outputDataDir/BackgroundStudiesFiles/
+
+#
+# Copy also file containing estimated mass resolution vs. lifetime.
+svn co --depth=files $inputDataSvnDir/SignalMassResolutionFiles/   $outputDataDir/SignalMassResolutionFiles/
+
+#unset echo
+
+echo ""
+echo "Input data to limit setting from main analysis copied to $outputDataDir/"
+
+echo "ACTION: Please verify that variable" '\$infileStem' "in parseEfficiencyFiles2012.pl is set equal to $outputDataDir/EfficiencyFiles/..."
+echo "ACTION: Please verify that variable" '\$massResFile' "in parseEfficiencyFiles2012.pl is set equal to $outputDataDir/SignalMassResolutionFiles/massResolutions.txt"
+echo "ACTION: Please verify that functions getDataTxtFile() and getDataRootFile() in SignalSampleInfo.py refers to files in directory $outputDataDir"
+
+echo "Type anything to continue, or CNTL C to abort"
+set dummy = $<
+echo 'Now copying the results to InputData2012/ by running parseEfficiencyFiles*.pl'
+rm -f "SignalSampleInfoEffi*.py" # Remove old files, just in case creation of new ones fails.
+echo "SHIT"
+ls SignalSam*
+echo "RATS"
+./parseEfficiencyFiles.pl 1
+./parseEfficiencyFiles.pl 2
+./parseEfficiencyFilesNeutralino.pl 1
+./parseEfficiencyFilesNeutralino.pl 2
+exit

@@ -1,0 +1,18 @@
+#!/bin/tcsh
+#############################
+# Copy limit plots to paper #
+#############################
+
+set paperDir = "$HOME/text/my_cms_notes/notes/EXO-12-037/trunk/Figs2012/"
+
+cp counting_result_Bayesian/*.p*    \
+   $paperDir/limitsFromCounting/Bayesian_unbinned/
+cp counting_result_Bayesian_neutralino/*.p*    \
+   $paperDir/limitsFromCounting/Bayesian_unbinned/
+cp counting_result_acc_Bayesian/*.p*           \
+   $paperDir/limitsInAcceptanceFromCounting/Bayesian_unbinned/
+cp counting_result_acc_Bayesian_neutralino/*.p*  \
+   $paperDir/limitsInAcceptanceFromCounting/Bayesian_unbinned/
+
+echo "Limit plots copied to $paperDir."
+echo "Please remember to svn commit them !"
