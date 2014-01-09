@@ -68,9 +68,9 @@ class JobOptions:
       # N.B. This file is not needed unless backgrPdfOption = 3.
       dataFile = "NONE"
       if lepton == "Muons":
-        dataFile = "InputData2012/BackgroundStudiesFiles/Mass_removedLifetimeCuts_2muTrack.root"
+        dataFile = "InputData2012/BackgroundStudiesFiles/minLeptonAbsD0Sig_bestCand_deltaPhiG90_removedLifetimeCollCuts_2muTrack_rereco_tiplipCorrected.root"
       elif lepton == "Electrons":
-        dataFile = "InputData2012/BackgroundStudiesFiles/Mass_removedLifetimeCuts_2eTrack.root"
+        dataFile = "InputData2012/BackgroundStudiesFiles/minLeptonAbsD0Sig_bestCand_deltaPhiG90_removedLifetimeCollCuts_2eTrack_rereco__tiplipCorrected.root"
       if not os.path.exists(dataFile):
          sys.exit("ERROR: Input data file %s not found !"  %dataFile)
       return dataFile
