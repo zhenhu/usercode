@@ -31,6 +31,8 @@ void GetHist(TString f, TH1F *h)
 		  ( run==251251 && ( (lumi>=1   && lumi<=167) ) ) ||
 		  ( run==251252 && ( (lumi>=1   && lumi<=554) ) )
 		  )*/
+		//if (run<251168) continue;
+		//if (run==251721 && lumi>89) continue;
 		{
 			double mass = dimuon_p4->M();
 			h->Fill(mass);
@@ -51,7 +53,7 @@ void DrawPlot() {
 
 	writeExtraText = true;       // if extra text
 	//extraText  = "Preliminary";  // default extra text is "Preliminary"
-	lumi_13TeV = "47.5 pb^{-1}";
+	lumi_13TeV = "1019 pb^{-1}";
 	lumi_8TeV  = "19.1 fb^{-1}"; // default is "19.7 fb^{-1}"
 	lumi_7TeV  = "4.9 fb^{-1}";  // default is "5.1 fb^{-1}"
 	int iPeriod = 4;    // 1=7TeV, 2=8TeV, 3=7+8TeV, 4=13TeV, 7=7+8+13TeV 
@@ -60,7 +62,7 @@ void DrawPlot() {
 	double xbins[100000];
 	xbins[0] = .1;
 	int nbins = 0;
-	double binWidth=0.012; 
+	double binWidth=0.01; 
 	for (int i=1; xbins[i-1]<500; i++) {
 		xbins[i] = xbins[i-1]*(1+binWidth);
 		nbins++;
@@ -151,7 +153,7 @@ void DrawPlot() {
 	canv->SetLogx();
 	canv->SetLogy();
 
-	TH1F *hFrame= gPad->DrawFrame(0.3, 1, 300, 1e8); //Jul 16, For EPS
+	TH1F *hFrame= gPad->DrawFrame(0.3, 100, 200, 1e10); //Oct 15, Collisions15_25ns_JSON_MuonPhys_v2.txt
 	hFrame->SetXTitle("#mu^{+}#mu^{-} invariant mass [GeV]");
 	hFrame->SetYTitle("Events / GeV");
 
@@ -159,13 +161,13 @@ void DrawPlot() {
 	hAll->Draw("HISTsame");
 
 	TLatex Latex;
-	Latex.DrawLatex(0.7,20000*2,"#omega");
-	Latex.DrawLatex(0.955,800000*2,"#phi");
-	Latex.DrawLatex(2.6,2000000*2,"J/#psi");
-	Latex.DrawLatex(3.4,300000*2,"#psi'");
-	Latex.DrawLatex(4.6,40000*2,"B_{s}");
-	Latex.DrawLatex(8.7,100000*2,"#Upsilon");
-	Latex.DrawLatex(85,4000*2,"Z");
+	Latex.DrawLatex(0.7,20000*50,"#omega");
+	Latex.DrawLatex(0.955,800000*50,"#phi");
+	Latex.DrawLatex(2.6,2000000*50,"J/#psi");
+	Latex.DrawLatex(3.4,300000*50,"#psi'");
+	Latex.DrawLatex(4.6,40000*50,"B_{s}");
+	Latex.DrawLatex(8.7,100000*50,"#Upsilon");
+	Latex.DrawLatex(85,4000*50,"Z");
 
 	leg = new TLegend(0.58,0.58,0.94,0.92);
 	leg->SetFillColor(0);
@@ -184,6 +186,6 @@ void DrawPlot() {
 	canv->RedrawAxis();
 	canv->GetFrame()->Draw();
 
-	canv->SaveAs("plots/dimuonMassWithDC_47pb.png");
-	canv->SaveAs("plots/dimuonMassWithDC_47pb.pdf");
+	canv->SaveAs("plots/dimuonMassWithDC_1fb.png");
+	canv->SaveAs("plots/dimuonMassWithDC_1fb.pdf");
 }

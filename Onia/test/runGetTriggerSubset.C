@@ -12,8 +12,7 @@ void runGetTriggerSubset()
 
 	for (int i=0; i<7; i++) {
 		TChain * chain = new TChain("rootuple/oniaTree","");
-		chain->Add("/eos/uscms/store/user/zhenhu/"+PD[i]+"/Onia2MuMuRootuple-Run2015B-"+PD[i]+"-v5/f64ae4aafa8965110120322f8d8de3c5/RootupleAll.root"); //run 251143 - 251562
-		chain->Add("/eos/uscms/store/user/zhenhu/"+PD[i]+"/Onia2MuMuRootuple-Run2015B-"+PD[i]+"-v6/f64ae4aafa8965110120322f8d8de3c5/RootupleAll.root"); //run 251638 - 251883 
+		chain->Add("/eos/uscms/store/user/zhenhu/"+PD[i]+"/Onia2MuMuRootuple-Run2015D-"+PD[i]+"-v1/RootupleAll.root"); 
 		GetTriggerSubset a(chain);
 		a.Loop(PD[i]+Trigger[i]);
 	}
