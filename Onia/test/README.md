@@ -1,6 +1,6 @@
-Step 1: Produce root trees with Ponia for each dataset
+Step 1: Produce root trees with this package for each dataset
 You may need to add more trigger path in Ponia/Onia/src/Onia2MuMuRootupler.cc
-The crab configs are in Ponia/Onia/test/crabJobs/
+The crab configs are in Onia/test/crabJobs/
 
 Step 2: Draw plot for the single dataset
 root -l runSinglePD.C++
